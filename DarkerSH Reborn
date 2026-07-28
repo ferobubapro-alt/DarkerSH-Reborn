@@ -418,168 +418,310 @@ local function CreateToggle(parentTab, name, description, callback)
     end)
 end
 -- ==========================================
--- YENİ NESİL KART / GRID OLUŞTURUCU FONKSİYONLAR (KESİN TIKLAMA ÇÖZÜMÜ)
+-- GELİŞMİŞ BÜYÜK KART VE WIDGET SİSTEMİ
 -- ==========================================
 
-local function CreateSection(parentTab, titleText)
-    local SectionTitleFrame = Instance.new("Frame")
-    SectionTitleFrame.Size = UDim2.new(1, -10, 0, 30)
-    SectionTitleFrame.BackgroundTransparency = 1
-    SectionTitleFrame.ZIndex = 3
-    SectionTitleFrame.Parent = parentTab
+local FloatingWidgets = {} -- Ekrana sabitlenen widget'ları tuttuğumuz tablo
 
-    local Title = Instance.new("TextLabel")
-    Title.Size = UDim2.new(1, 0, 1, 0)
-    Title.Position = UDim2.new(0, 5, 0, 5)
-    Title.BackgroundTransparency = 1
-    Title.Text = string.upper(titleText)
-    Title.Font = Enum.Font.GothamBlack
-    Title.TextColor3 = Color3.fromRGB(138, 43, 226)
-    Title.TextSize = 13
-    Title.TextXAlignment = Enum.TextXAlignment.Left
-    Title.ZIndex = 4
-    Title.Parent = SectionTitleFrame
-
-    local GridContainer = Instance.new("Frame")
-    GridContainer.Size = UDim2.new(1, -10, 0, 130) -- Boyut "0" olmasın diye varsayılan değer eklendi
-    GridContainer.BackgroundTransparency = 1
-    GridContainer.ZIndex = 3
-    GridContainer.Parent = parentTab
-
-    local GridLayout = Instance.new("UIGridLayout")
-    GridLayout.CellSize = UDim2.new(0, 195, 0, 130) 
-    GridLayout.CellPadding = UDim2.new(0, 10, 0, 10)
-    GridLayout.SortOrder = Enum.SortOrder.LayoutOrder
-    GridLayout.Parent = GridContainer
-
-    -- Kutu eklendikçe çerçevenin yüksekliğini garantiye alan sistem:
-    local function UpdateSize()
-        task.delay(0.05, function()
-            GridContainer.Size = UDim2.new(1, -10, 0, GridLayout.AbsoluteContentSize.Y)
-        end)
-    end
-    GridLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(UpdateSize)
-    GridContainer.ChildAdded:Connect(UpdateSize)
-
-    return GridContainer 
-end
-
-local function CreateToggle(parentContainer, name, description, callback)
+-- 1. BÜYÜK KATEGORİ KARTI OLUŞTURUCU
+local function CreateCategoryCard(parentTab, titleText)
     local CardFrame = Instance.new("Frame")
+    CardFrame.Size = UDim2.new(1, -15, 0, 40) -- Yüksekliği UIListLayout ile otomatik artacak
     CardFrame.BackgroundColor3 = Color3.fromRGB(22, 22, 26)
     CardFrame.ZIndex = 3
-    CardFrame.Parent = parentContainer
+    CardFrame.Parent = parentTab
     Instance.new("UICorner", CardFrame).CornerRadius = UDim.new(0, 8)
-    
+
     local Stroke = Instance.new("UIStroke")
     Stroke.Color = Color3.fromRGB(40, 40, 45)
     Stroke.Parent = CardFrame
 
-    -- !! ÖNEMLİ DÜZELTME: KARTIN TAMAMINI KAPLAYAN GÖRÜNMEZ TIKLAMA ALANI !!
-    local ClickArea = Instance.new("TextButton")
-    ClickArea.Size = UDim2.new(1, 0, 1, 0)
-    ClickArea.BackgroundTransparency = 1
-    ClickArea.Text = ""
-    ClickArea.ZIndex = 10 -- En üst katmanda, diğer yazıların altında ezilmez
-    ClickArea.Parent = CardFrame
-
     local TitleLbl = Instance.new("TextLabel")
-    TitleLbl.Size = UDim2.new(1, -20, 0, 20)
-    TitleLbl.Position = UDim2.new(0, 10, 0, 10)
+    TitleLbl.Size = UDim2.new(1, -20, 0, 30)
+    TitleLbl.Position = UDim2.new(0, 10, 0, 5)
     TitleLbl.BackgroundTransparency = 1
-    TitleLbl.Text = name
-    TitleLbl.Font = Enum.Font.GothamBold
-    TitleLbl.TextColor3 = Color3.fromRGB(255, 255, 255)
-    TitleLbl.TextSize = 12
+    TitleLbl.Text = string.upper(titleText)
+    TitleLbl.Font = Enum.Font.GothamBlack
+    TitleLbl.TextColor3 = Color3.fromRGB(138, 43, 226)
+    TitleLbl.TextSize = 14
     TitleLbl.TextXAlignment = Enum.TextXAlignment.Left
     TitleLbl.ZIndex = 4
     TitleLbl.Parent = CardFrame
 
+    local ItemContainer = Instance.new("Frame")
+    ItemContainer.Size = UDim2.new(1, -20, 1, -40)
+    ItemContainer.Position = UDim2.new(0, 10, 0, 35)
+    ItemContainer.BackgroundTransparency = 1
+    ItemContainer.ZIndex = 4
+    ItemContainer.Parent = CardFrame
+
+    local ListLayout = Instance.new("UIListLayout")
+    ListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    ListLayout.Padding = UDim.new(0, 8)
+    ListLayout.Parent = ItemContainer
+
+    -- İçine özellik eklendikçe Kartın boyunu otomatik büyütür
+    local function UpdateCardSize()
+        task.delay(0.05, function()
+            CardFrame.Size = UDim2.new(1, -15, 0, ListLayout.AbsoluteContentSize.Y + 45)
+        end)
+    end
+    ListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(UpdateCardSize)
+    ItemContainer.ChildAdded:Connect(UpdateCardSize)
+
+    return ItemContainer
+end
+
+-- ==========================================
+-- QUICK WIDGET (HIZLI BUTON) SİSTEMİ
+-- ==========================================
+local function CreateQuickWidget(name, toggleCallback)
+    if FloatingWidgets[name] then return end -- Zaten varsa oluşturma
+
+    local Widget = Instance.new("Frame")
+    Widget.Size = UDim2.new(0, 120, 0, 40)
+    Widget.Position = UDim2.new(0.8, 0, 0.5, 0)
+    Widget.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+    Widget.ZIndex = 100
+    Widget.Active = true
+    Widget.Parent = ScreenGui
+    Instance.new("UICorner", Widget).CornerRadius = UDim.new(0, 8)
+    
+    local UIStroke = Instance.new("UIStroke")
+    UIStroke.Color = Color3.fromRGB(138, 43, 226)
+    UIStroke.Thickness = 1.5
+    UIStroke.Parent = Widget
+
+    local Btn = Instance.new("TextButton")
+    Btn.Size = UDim2.new(1, 0, 1, 0)
+    Btn.BackgroundTransparency = 1
+    Btn.Text = name
+    Btn.Font = Enum.Font.GothamBold
+    Btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    Btn.TextSize = 12
+    Btn.ZIndex = 101
+    Btn.Parent = Widget
+
+    MakeDraggable(Widget, Btn)
+    FloatingWidgets[name] = Widget
+
+    local isLocked = false
+    local isBig = false
+
+    -- Widget Basılı Tutma Mantığı (Ayar Menüsü)
+    local wIsPressed = false
+    local wFired = false
+    Btn.MouseButton1Down:Connect(function()
+        wIsPressed = true; wFired = false
+        task.delay(0.5, function()
+            if wIsPressed and not wFired then
+                wFired = true
+                -- Basılı tutunca özellikler değişir
+                isLocked = not isLocked
+                isBig = not isBig
+                Widget.Active = not isLocked
+                Widget.Size = isBig and UDim2.new(0, 150, 0, 50) or UDim2.new(0, 120, 0, 40)
+                UIStroke.Color = isLocked and Color3.fromRGB(200, 50, 50) or Color3.fromRGB(138, 43, 226)
+                Notify(name .. (isLocked and " Widget Kitlendi & Büyüdü" or " Widget Açıldı"))
+            end
+        end)
+    end)
+
+    Btn.MouseButton1Up:Connect(function()
+        wIsPressed = false
+        if not wFired then
+            toggleCallback() -- Tıklanınca asıl özelliği çalıştır
+        end
+    end)
+    Btn.MouseLeave:Connect(function() wIsPressed = false end)
+end
+
+local function RemoveQuickWidget(name)
+    if FloatingWidgets[name] then
+        FloatingWidgets[name]:Destroy()
+        FloatingWidgets[name] = nil
+        Notify(name .. " Hızlı Butonu Kaldırıldı.")
+    end
+end
+
+-- 2. KART İÇİ YATAY ÖZELLİK (TOGGLE) OLUŞTURUCU VE LONG PRESS
+local function CreateToggle(parentContainer, name, description, callback)
+    local RowFrame = Instance.new("Frame")
+    RowFrame.Size = UDim2.new(1, 0, 0, 45)
+    RowFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+    RowFrame.ZIndex = 4
+    RowFrame.Parent = parentContainer
+    Instance.new("UICorner", RowFrame).CornerRadius = UDim.new(0, 6)
+
+    local ClickArea = Instance.new("TextButton")
+    ClickArea.Size = UDim2.new(1, 0, 1, 0)
+    ClickArea.BackgroundTransparency = 1
+    ClickArea.Text = ""
+    ClickArea.ZIndex = 10 
+    ClickArea.Parent = RowFrame
+
+    local TitleLbl = Instance.new("TextLabel")
+    TitleLbl.Size = UDim2.new(1, -70, 0, 20)
+    TitleLbl.Position = UDim2.new(0, 15, 0, 5)
+    TitleLbl.BackgroundTransparency = 1
+    TitleLbl.Text = name
+    TitleLbl.Font = Enum.Font.GothamBold
+    TitleLbl.TextColor3 = Color3.fromRGB(255, 255, 255)
+    TitleLbl.TextSize = 13
+    TitleLbl.TextXAlignment = Enum.TextXAlignment.Left
+    TitleLbl.ZIndex = 5
+    TitleLbl.Parent = RowFrame
+
     local DescLbl = Instance.new("TextLabel")
-    DescLbl.Size = UDim2.new(1, -20, 0, 45)
-    DescLbl.Position = UDim2.new(0, 10, 0, 35)
+    DescLbl.Size = UDim2.new(1, -70, 0, 20)
+    DescLbl.Position = UDim2.new(0, 15, 0, 22)
     DescLbl.BackgroundTransparency = 1
     DescLbl.Text = description
     DescLbl.Font = Enum.Font.Gotham
     DescLbl.TextColor3 = Color3.fromRGB(150, 150, 150)
     DescLbl.TextSize = 11
     DescLbl.TextXAlignment = Enum.TextXAlignment.Left
-    DescLbl.TextWrapped = true
-    DescLbl.TextYAlignment = Enum.TextYAlignment.Top
-    DescLbl.ZIndex = 4
-    DescLbl.Parent = CardFrame
+    DescLbl.ZIndex = 5
+    DescLbl.Parent = RowFrame
 
-    local ToggleBtn = Instance.new("TextButton")
-    ToggleBtn.Size = UDim2.new(1, -20, 0, 30)
-    ToggleBtn.Position = UDim2.new(0, 10, 1, -40)
-    ToggleBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
-    ToggleBtn.Text = "KAPALI"
-    ToggleBtn.Font = Enum.Font.GothamBold
-    ToggleBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
-    ToggleBtn.TextSize = 11
-    ToggleBtn.Active = false -- Sadece görsel olarak duracak
-    ToggleBtn.ZIndex = 4
-    Instance.new("UICorner", ToggleBtn).CornerRadius = UDim.new(0, 6)
-    ToggleBtn.Parent = CardFrame
+    local ToggleBtn = Instance.new("Frame")
+    ToggleBtn.Size = UDim2.new(0, 40, 0, 20)
+    ToggleBtn.Position = UDim2.new(1, -55, 0.5, -10)
+    ToggleBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 50)
+    ToggleBtn.ZIndex = 5
+    Instance.new("UICorner", ToggleBtn).CornerRadius = UDim.new(1, 0)
+    ToggleBtn.Parent = RowFrame
+
+    local Circle = Instance.new("Frame")
+    Circle.Size = UDim2.new(0, 16, 0, 16)
+    Circle.Position = UDim2.new(0, 2, 0, 2)
+    Circle.BackgroundColor3 = Color3.fromRGB(200, 200, 200)
+    Circle.ZIndex = 6
+    Instance.new("UICorner", Circle).CornerRadius = UDim.new(1, 0)
+    Circle.Parent = ToggleBtn
 
     local toggled = false
-    
-    -- Tıklamayı direkt butondan değil, "kartın tümünden" ve MouseButton1Down ile alıyoruz!
-    ClickArea.MouseButton1Down:Connect(function()
+
+    local function FireToggle()
         toggled = not toggled
-        local stateText = toggled and "AÇIK" or "KAPALI"
-        
         if toggled then
-            TweenService:Create(ToggleBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(138, 43, 226), TextColor3 = Color3.fromRGB(255, 255, 255)}):Play()
-            TweenService:Create(Stroke, TweenInfo.new(0.2), {Color = Color3.fromRGB(138, 43, 226)}):Play()
+            TweenService:Create(ToggleBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(138, 43, 226)}):Play()
+            TweenService:Create(Circle, TweenInfo.new(0.2), {Position = UDim2.new(1, -18, 0, 2), BackgroundColor3 = Color3.fromRGB(255,255,255)}):Play()
         else
-            TweenService:Create(ToggleBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(35, 35, 40), TextColor3 = Color3.fromRGB(200, 200, 200)}):Play()
-            TweenService:Create(Stroke, TweenInfo.new(0.2), {Color = Color3.fromRGB(40, 40, 45)}):Play()
+            TweenService:Create(ToggleBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(45, 45, 50)}):Play()
+            TweenService:Create(Circle, TweenInfo.new(0.2), {Position = UDim2.new(0, 2, 0, 2), BackgroundColor3 = Color3.fromRGB(200,200,200)}):Play()
         end
-        
-        ToggleBtn.Text = stateText
-        Notify(name .. (toggled and " Aktif Edildi" or " Kapatıldı"))
+        Notify(name .. (toggled and " Aktif" or " Kapalı"))
         pcall(function() callback(toggled) end)
+    end
+
+    -- Tıklama ve Basılı Tutma Mantığı
+    local isPressed = false
+    local longPressFired = false
+    
+    ClickArea.MouseButton1Down:Connect(function()
+        isPressed = true
+        longPressFired = false
+        task.delay(0.5, function()
+            if isPressed and not longPressFired then
+                longPressFired = true
+                if FloatingWidgets[name] then
+                    RemoveQuickWidget(name)
+                else
+                    CreateQuickWidget(name, FireToggle)
+                    Notify(name .. " Hızlı Buton Olarak Eklendi!")
+                end
+            end
+        end)
+    end)
+
+    ClickArea.MouseButton1Up:Connect(function()
+        isPressed = false
+        if not longPressFired then
+            FireToggle()
+        end
+    end)
+
+    ClickArea.MouseLeave:Connect(function()
+        isPressed = false
     end)
 end
+
+-- YENİ SEKME OLUŞTURMA (TABS İÇİNE COMBAT EKLENDİ)
+local CombatTab = CreateTab("Savaş", false)
+-- Mevcut olanları Tabs tablosuna zaten eklemiştik yukarıda (FarmTab vs.)
+
 -- ==========================================
 -- 4. ÖZELLİKLER VE MM2 MANTIKLARI
 -- ==========================================
-local Toggles = {AutoCoin = false, AutoGun = false, AutoKill = false, AntiAFK = false, SafeMode = false}
+local Toggles = {AutoCoin = false, AutoGun = false, AutoKill = false, AntiAFK = false, SafeMode = false, PlayerESP = false, MurdererESP = false, SheriffESP = false, ShootMurderer = false}
 
 -- === FARM SEKMESİ ===
-local FarmGrid = CreateSection(FarmTab, "Otomatik Kasılma")
+local FarmCard = CreateCategoryCard(FarmTab, "Otomatik Kasılma (Farm)")
 
-CreateToggle(FarmGrid, "Otomatik Altın Topla", "Haritadaki altınları otomatik toplar.", function(state)
+CreateToggle(FarmCard, "Akıllı Altın Topla", "30 hızda uçarak toplar. Biterse reset atar. Kalıcıdır.", function(state)
     Toggles.AutoCoin = state
-    while Toggles.AutoCoin and task.wait(0.2) do
-        pcall(function()
+    task.spawn(function()
+        while Toggles.AutoCoin do
             local char = LocalPlayer.Character
-            if char and char:FindFirstChild("HumanoidRootPart") then
+            if char and char:FindFirstChild("HumanoidRootPart") and char:FindFirstChild("Humanoid") and char.Humanoid.Health > 0 then
+                local hrp = char.HumanoidRootPart
+                local coins = {}
                 for _, v in pairs(Workspace:GetDescendants()) do
                     if v.Name == "Coin_Server" and v:IsA("BasePart") then
-                        if firetouchinterest then
-                            firetouchinterest(char.HumanoidRootPart, v, 0)
-                            firetouchinterest(char.HumanoidRootPart, v, 1)
-                        else
-                            char.HumanoidRootPart.CFrame = v.CFrame
-                        end
+                        table.insert(coins, v)
                     end
                 end
+
+                if #coins > 0 then
+                    local targetCoin = coins[1]
+                    local dist = (hrp.Position - targetCoin.Position).Magnitude
+                    local timeToTravel = dist / 30 -- Sabit 30 hız hesabı
+                    
+                    local tweenInfo = TweenInfo.new(timeToTravel, Enum.EasingStyle.Linear)
+                    local tween = TweenService:Create(hrp, tweenInfo, {CFrame = targetCoin.CFrame})
+                    
+                    hrp.Anchored = true
+                    tween:Play()
+                    
+                    local reached = false
+                    local conn; conn = tween.Completed:Connect(function() reached = true end)
+                    
+                    while not reached and Toggles.AutoCoin and targetCoin.Parent and char.Humanoid.Health > 0 do
+                        task.wait(0.1)
+                        if firetouchinterest then
+                            firetouchinterest(hrp, targetCoin, 0)
+                            firetouchinterest(hrp, targetCoin, 1)
+                        end
+                    end
+                    if conn then conn:Disconnect() end
+                    if tween then tween:Cancel() end
+                    hrp.Anchored = false
+                else
+                    char.Humanoid.Health = 0 -- Altın bitti, reset çek
+                    task.wait(4) -- Doğmayı bekle
+                end
+            else
+                task.wait(1) -- Karakterin doğmasını bekle (Ölünce kapanmaz)
             end
-        end)
-    end
+        end
+    end)
 end)
 
-CreateToggle(FarmGrid, "Otomatik Silah", "Yere düşen silahları toplar.", function(state)
+CreateToggle(FarmCard, "Akıllı Silah Topla", "Silaha ışınlanıp alır ve eski yerine döner.", function(state)
     Toggles.AutoGun = state
-    while Toggles.AutoGun and task.wait(0.3) do
+    while Toggles.AutoGun and task.wait(0.5) do
         pcall(function()
             local char = LocalPlayer.Character
             if char and char:FindFirstChild("HumanoidRootPart") then
+                local hrp = char.HumanoidRootPart
                 for _, v in pairs(Workspace:GetDescendants()) do
                     if v.Name == "GunDrop" and v:IsA("BasePart") then
-                        char.HumanoidRootPart.CFrame = v.CFrame
+                        local originalCFrame = hrp.CFrame
+                        hrp.CFrame = v.CFrame
+                        task.wait(0.2)
+                        hrp.CFrame = originalCFrame
+                        task.wait(1) 
                     end
                 end
             end
@@ -587,7 +729,10 @@ CreateToggle(FarmGrid, "Otomatik Silah", "Yere düşen silahları toplar.", func
     end
 end)
 
-CreateToggle(FarmGrid, "Otomatik Katlet", "Katilken herkesi otomatik öldürür.", function(state)
+-- === SAVAŞ (COMBAT) SEKMESİ ===
+local CombatCard = CreateCategoryCard(CombatTab, "Saldırı ve Savunma")
+
+CreateToggle(CombatCard, "Otomatik Katlet", "Katilken herkesi otomatik öldürür.", function(state)
     Toggles.AutoKill = state
     while Toggles.AutoKill and task.wait(0.3) do
         pcall(function()
@@ -610,17 +755,119 @@ CreateToggle(FarmGrid, "Otomatik Katlet", "Katilken herkesi otomatik öldürür.
     end
 end)
 
--- === OYUNCU SEKMESİ (HAREKET) ===
-local HareketGrid = CreateSection(PlayerTab, "Hareket (Movement)")
+CreateToggle(CombatCard, "Katili Vur (Shoot Murderer)", "Şerif isen otomatik olarak katili hedefler ve vurur.", function(state)
+    Toggles.ShootMurderer = state
+    while Toggles.ShootMurderer and task.wait(0.2) do
+        pcall(function()
+            local char = LocalPlayer.Character
+            local gun = LocalPlayer.Backpack:FindFirstChild("Gun") or (char and char:FindFirstChild("Gun"))
+            if gun and char and char:FindFirstChild("HumanoidRootPart") then
+                -- Katili bul
+                local murderer = nil
+                for _, plr in pairs(Players:GetPlayers()) do
+                    if plr ~= LocalPlayer and plr.Character then
+                        if plr.Backpack:FindFirstChild("Knife") or plr.Character:FindFirstChild("Knife") then
+                            murderer = plr
+                            break
+                        end
+                    end
+                end
+                
+                -- Katil bulunduysa ona bak ve sık
+                if murderer and murderer.Character and murderer.Character:FindFirstChild("HumanoidRootPart") then
+                    if gun.Parent ~= char then gun.Parent = char end
+                    Workspace.CurrentCamera.CFrame = CFrame.new(Workspace.CurrentCamera.CFrame.Position, murderer.Character.HumanoidRootPart.Position)
+                    gun:Activate()
+                end
+            end
+        end)
+    end
+end)
 
-CreateToggle(HareketGrid, "Hızlı Yürüme", "Karakterin yürüme hızını 50'ye çıkarır.", function(state)
+-- === GÖRSEL (VISUAL) SEKMESİ (ESP) ===
+local VisualCard = CreateCategoryCard(VisualTab, "Oyuncu İzleme (ESP)")
+
+-- ESP Yardımcı Fonksiyonları
+local ESPFolder = Instance.new("Folder")
+ESPFolder.Name = "DarkerSH_ESP"
+ESPFolder.Parent = CoreGui
+
+local function GetRole(player)
+    if player.Backpack:FindFirstChild("Knife") or (player.Character and player.Character:FindFirstChild("Knife")) then return "Murderer" end
+    if player.Backpack:FindFirstChild("Gun") or (player.Character and player.Character:FindFirstChild("Gun")) then return "Sheriff" end
+    return "Innocent"
+end
+
+local function UpdateESP()
+    -- Eski ESP'leri temizle
+    for _, v in pairs(ESPFolder:GetChildren()) do v:Destroy() end
+
+    for _, plr in pairs(Players:GetPlayers()) do
+        if plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+            local role = GetRole(plr)
+            local shouldDraw = false
+            local espColor = Color3.fromRGB(0, 255, 0) -- Yeşil (Masum)
+            
+            if Toggles.PlayerESP then
+                shouldDraw = true
+                if role == "Murderer" then espColor = Color3.fromRGB(255, 0, 0) end
+                if role == "Sheriff" then espColor = Color3.fromRGB(0, 0, 255) end
+            elseif Toggles.MurdererESP and role == "Murderer" then
+                shouldDraw = true
+                espColor = Color3.fromRGB(255, 0, 0)
+            elseif Toggles.SheriffESP and role == "Sheriff" then
+                shouldDraw = true
+                espColor = Color3.fromRGB(0, 0, 255)
+            end
+
+            if shouldDraw then
+                local Highlight = Instance.new("Highlight")
+                Highlight.Name = plr.Name
+                Highlight.Adornee = plr.Character
+                Highlight.FillColor = espColor
+                Highlight.OutlineColor = Color3.new(1, 1, 1)
+                Highlight.FillTransparency = 0.5
+                Highlight.OutlineTransparency = 0.2
+                Highlight.Parent = ESPFolder
+            end
+        end
+    end
+end
+
+RunService.RenderStepped:Connect(function()
+    if Toggles.PlayerESP or Toggles.MurdererESP or Toggles.SheriffESP then
+        UpdateESP()
+    else
+        for _, v in pairs(ESPFolder:GetChildren()) do v:Destroy() end
+    end
+end)
+
+CreateToggle(VisualCard, "Tüm Oyuncular (Player ESP)", "Masum: Yeşil, Katil: Kırmızı, Şerif: Mavi", function(state)
+    Toggles.PlayerESP = state
+end)
+
+CreateToggle(VisualCard, "Sadece Katil (Murderer ESP)", "Katili Kırmızı renk ile gösterir.", function(state)
+    Toggles.MurdererESP = state
+end)
+
+CreateToggle(VisualCard, "Sadece Şerif (Sheriff ESP)", "Şerifi Mavi renk ile gösterir.", function(state)
+    Toggles.SheriffESP = state
+end)
+
+
+-- === HAREKET VE UTILITY (Önceki kodların aynısı, yeni Karta uyarlandı) ===
+-- === HAREKET VE UTILITY ===
+local HareketCard = CreateCategoryCard(PlayerTab, "Hareket (Movement)")
+local UtilityCard = CreateCategoryCard(PlayerTab, "Özel Güçler (Utility)")
+
+CreateToggle(HareketCard, "Hızlı Yürüme", "Karakterin yürüme hızını 50'ye çıkarır.", function(state)
     if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
         LocalPlayer.Character.Humanoid.WalkSpeed = state and 50 or 16
     end
 end)
 
 local NoclipConnection
-CreateToggle(HareketGrid, "Noclip", "Fiziksel nesnelerin ve duvarların içinden geçmeni sağlar.", function(state)
+CreateToggle(HareketCard, "Noclip", "Fiziksel nesnelerin ve duvarların içinden geçmeni sağlar.", function(state)
     if state then
         NoclipConnection = RunService.Stepped:Connect(function()
             if LocalPlayer.Character then
@@ -640,21 +887,19 @@ local FlyConnection
 local FlyGUI 
 local FlySpeed = 50
 local flying = false
-
 local IdleAnimTrack = nil
 local MoveAnimTrack = nil
 
-CreateToggle(HareketGrid, "Uçma (Fly)", "Joystick/WASD ve kamera yönüne duyarlı uçuş. Özel animasyonlar içerir.", function(state)
+CreateToggle(HareketCard, "Uçma (Fly)", "Joystick/WASD ve kamera yönüne duyarlı pürüzsüz uçuş.", function(state)
     flying = state
     local char = LocalPlayer.Character
     if not char or not char:FindFirstChild("HumanoidRootPart") or not char:FindFirstChild("Humanoid") then return end
     local hrp = char.HumanoidRootPart
     local hum = char.Humanoid
 
-    -- Uçmayı durdurma ve her şeyi temizleme fonksiyonu 
     local function StopFly()
         flying = false
-        hum.PlatformStand = false -- TİTREME DÜZELTMESİ: Yürüme fiziğini geri aç
+        hum.PlatformStand = false 
         hum.AutoRotate = true
         
         if FlyConnection then FlyConnection:Disconnect() FlyConnection = nil end
@@ -662,16 +907,14 @@ CreateToggle(HareketGrid, "Uçma (Fly)", "Joystick/WASD ve kamera yönüne duyar
         if hrp:FindFirstChild("FlyBG") then hrp.FlyBG:Destroy() end
         if FlyGUI then FlyGUI:Destroy() FlyGUI = nil end
         
-        -- Animasyonları durdur ve temizle
         if IdleAnimTrack then IdleAnimTrack:Stop() IdleAnimTrack:Destroy() IdleAnimTrack = nil end
         if MoveAnimTrack then MoveAnimTrack:Stop() MoveAnimTrack:Destroy() MoveAnimTrack = nil end
     end
 
     if flying then
-        hum.PlatformStand = true -- TİTREME DÜZELTMESİ: Yürüme fiziğini kapat
+        hum.PlatformStand = true 
         hum.AutoRotate = false
 
-        -- 1. Animasyonları Yükle (PlayerAnimator üzerinden)
         local animator = hum:FindFirstChildOfClass("Animator")
         if animator then
             local idleAnim = Instance.new("Animation")
@@ -687,7 +930,6 @@ CreateToggle(HareketGrid, "Uçma (Fly)", "Joystick/WASD ve kamera yönüne duyar
             IdleAnimTrack:Play()
         end
 
-        -- 2. Uçma Fiziklerini Oluştur
         local bv = Instance.new("BodyVelocity")
         bv.Name = "FlyBV"
         bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
@@ -701,7 +943,6 @@ CreateToggle(HareketGrid, "Uçma (Fly)", "Joystick/WASD ve kamera yönüne duyar
         bg.CFrame = hrp.CFrame
         bg.Parent = hrp
 
-        -- 3. Fly Ayar Menüsünü Ekrana Ekle
         if not CoreGui:FindFirstChild("FlySettingsMenu") then
             FlyGUI = Instance.new("ScreenGui")
             FlyGUI.Name = "FlySettingsMenu"
@@ -795,7 +1036,6 @@ CreateToggle(HareketGrid, "Uçma (Fly)", "Joystick/WASD ve kamera yönüne duyar
             end)
         end
 
-        -- 4. Klasik Fly Döngüsü
         FlyConnection = RunService.RenderStepped:Connect(function()
             if char and char:FindFirstChild("Humanoid") and hrp:FindFirstChild("FlyBV") then
                 local cam = Workspace.CurrentCamera
@@ -827,10 +1067,8 @@ CreateToggle(HareketGrid, "Uçma (Fly)", "Joystick/WASD ve kamera yönüne duyar
         StopFly()
     end
 end)
--- === OYUNCU SEKMESİ (ÖZEL GÜÇLER) ===
-local UtilityGrid = CreateSection(PlayerTab, "Özel Güçler (Utility)")
 
-CreateToggle(UtilityGrid, "AFK Koruması", "Oyundan atılmanı engeller.", function(state)
+CreateToggle(UtilityCard, "AFK Koruması", "Oyundan atılmanı engeller.", function(state)
     Toggles.AntiAFK = state
     if Toggles.AntiAFK then
         LocalPlayer.Idled:Connect(function()
@@ -841,7 +1079,7 @@ CreateToggle(UtilityGrid, "AFK Koruması", "Oyundan atılmanı engeller.", funct
     end
 end)
 
-CreateToggle(UtilityGrid, "Güvenli Mod", "Katil yakınlaşınca otomatik olarak yukarı kaçar.", function(state)
+CreateToggle(UtilityCard, "Güvenli Mod", "Katil yakınlaşınca otomatik olarak yukarı kaçar.", function(state)
     Toggles.SafeMode = state
     while Toggles.SafeMode and task.wait(0.2) do
         pcall(function()
@@ -865,7 +1103,7 @@ local TechPlatform, PlatformGUI, PlatformConnection
 local PlatformY = 0
 local movingUp, movingDown = false, false
 
-CreateToggle(UtilityGrid, "Tech Platform", "Ayağının altında kontrol edilebilir teknolojik platform belirir.", function(state)
+CreateToggle(UtilityCard, "Tech Platform", "Ayağının altında kontrol edilebilir teknolojik platform belirir.", function(state)
     if state then
         local char = LocalPlayer.Character
         if not char or not char:FindFirstChild("HumanoidRootPart") then
@@ -953,21 +1191,11 @@ CreateToggle(UtilityGrid, "Tech Platform", "Ayağının altında kontrol edilebi
         movingUp, movingDown = false, false
     end
 end)
-
--- === DİĞER SEKMELER ===
-local VisualGrid = CreateSection(VisualTab, "Görsel (Visuals)")
-CreateToggle(VisualGrid, "ESP (Oyuncuları Gör)", "Oyuncuları duvar arkasından gösterir.", function(state) end)
-
-local InvGrid = CreateSection(InventoryTab, "Envanter (Inventory)")
-CreateToggle(InvGrid, "Tüm Bıçaklar", "Envanter eşyalarını gösterir.", function(state) end)
-
-local SettingsGrid = CreateSection(SettingsTab, "Ayarlar (Settings)")
-CreateToggle(SettingsGrid, "FPS Boost", "Gereksiz efektleri kapatır.", function(state) end)
 -- ==========================================
 -- 5. INTRO GEÇİŞİ (GARANTİLİ THREAD)
 -- ==========================================
 task.spawn(function()
-    task.wait(3) -- 3 saniye intro süresi
+    task.wait(3) 
     
     local fadeOutInfo = TweenInfo.new(1, Enum.EasingStyle.Sine, Enum.EasingDirection.Out)
     pcall(function()
