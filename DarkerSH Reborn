@@ -1008,27 +1008,41 @@ CreateToggle(CombatCard, "Otomatik Katlet", "Katilken herkesi otomatik öldürü
     end
 end)
 
-CreateToggle(CombatCard, "Katili Vur", "Şerif isen otomatik olarak katili vurur.", 2, function(state)
+CreateToggle(CombatCard, "Katili Vur", "Hedef almadan, gizlice katili vurur (Silent Aim).", 2, function(state)
     Toggles.ShootMurderer = state
     while Toggles.ShootMurderer and task.wait(0.2) do
         pcall(function()
             local char = LocalPlayer.Character
             local gun = LocalPlayer.Backpack:FindFirstChild("Gun") or (char and char:FindFirstChild("Gun"))
+            
             if gun and char and char:FindFirstChild("HumanoidRootPart") then
                 local murderer = nil
                 for _, plr in pairs(Players:GetPlayers()) do
-                    if plr ~= LocalPlayer and plr.Character then
-                        if plr.Backpack:FindFirstChild("Knife") or plr.Character:FindFirstChild("Knife") then
-                            murderer = plr
-                            break
-                        end
+                    if plr ~= LocalPlayer and plr.Character and (plr.Backpack:FindFirstChild("Knife") or plr.Character:FindFirstChild("Knife")) then
+                        murderer = plr
+                        break
                     end
                 end
                 
                 if murderer and murderer.Character and murderer.Character:FindFirstChild("HumanoidRootPart") then
                     if gun.Parent ~= char then gun.Parent = char end
-                    Workspace.CurrentCamera.CFrame = CFrame.new(Workspace.CurrentCamera.CFrame.Position, murderer.Character.HumanoidRootPart.Position)
+                    
+                    local hrp = char.HumanoidRootPart
+                    local oldCFrame = hrp.CFrame
+                    local oldCam = Workspace.CurrentCamera.CFrame
+                    
+                    -- 1 milisaniyeliğine katilin arkasına geç ve ateşle (Kamera hissettirmez)
+                    hrp.CFrame = murderer.Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, 3)
+                    Workspace.CurrentCamera.CFrame = CFrame.lookAt(Workspace.CurrentCamera.CFrame.Position, murderer.Character.HumanoidRootPart.Position)
+                    
                     gun:Activate()
+                    RunService.RenderStepped:Wait() -- Sadece 1 frame bekle (Atışın kaydedilmesi için)
+                    
+                    hrp.CFrame = oldCFrame
+                    Workspace.CurrentCamera.CFrame = oldCam
+                    
+                    Toggles.ShootMurderer = false -- Vurduktan sonra kendini kapatsın
+                    Notify("Katil vuruldu!")
                 end
             end
         end)
@@ -1042,7 +1056,8 @@ local UtilityCard = CreateCategoryCard(PlayerTab, "Özel Güçler")
 local WalkSpeedGUI
 local CurrentSpeed = 50
 
-CreateToggle(HareketCard, "Hızlı Yürüme", "Yürüme hızını ayarlar ve yanda menü açar.", function(state)
+-- DİKKAT: function(state) öncesindeki '0' rakamı, özelliğin Free tier olduğunu belirtir!
+CreateToggle(HareketCard, "Hızlı Yürüme", "Yürüme hızını ayarlar ve yanda menü açar.", 0, function(state)
     local char = LocalPlayer.Character
     if not char or not char:FindFirstChild("Humanoid") then return end
     
@@ -1057,7 +1072,7 @@ CreateToggle(HareketCard, "Hızlı Yürüme", "Yürüme hızını ayarlar ve yan
 
             local MenuFrame = Instance.new("Frame")
             MenuFrame.Size = UDim2.new(0, 150, 0, 100)
-            MenuFrame.Position = UDim2.new(1, -170, 0.5, 75) -- Fly menüsünün altına hizalı
+            MenuFrame.Position = UDim2.new(1, -170, 0.5, 75)
             MenuFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 23)
             Instance.new("UICorner", MenuFrame).CornerRadius = UDim.new(0, 10)
             
@@ -1121,7 +1136,7 @@ CreateToggle(HareketCard, "Hızlı Yürüme", "Yürüme hızını ayarlar ve yan
         end
     else
         char.Humanoid.WalkSpeed = 16
-        if WalkSpeedGUI then WalkSpeedGUI:Destroy() end
+        if WalkSpeedGUI then WalkSpeedGUI:Destroy() WalkSpeedGUI = nil end
     end
 end)
 
@@ -1299,43 +1314,63 @@ end)
 
 local safeIsHiding = false
 local safePos = nil
-CreateToggle(UtilityCard, "Güvenli Mod", "Katil yaklaşınca kaçar, uzaklaşınca geri döner.", 1, function(state)
+
+CreateToggle(UtilityCard, "Güvenli Mod", "Katilden ve fırlatılan bıçaktan kaçar.", 1, function(state)
     Toggles.SafeMode = state
-    while Toggles.SafeMode and task.wait(0.2) do
+    while Toggles.SafeMode and task.wait(0.1) do
         pcall(function()
             local char = LocalPlayer.Character
-            if char and char:FindFirstChild("HumanoidRootPart") then
-                local hrp = char.HumanoidRootPart
-                local murderer = nil
-                
-                -- Katili Çantadan veya Karakterden Bulma Mantığı Düzeltildi
-                for _, plr in pairs(Players:GetPlayers()) do
-                    if plr ~= LocalPlayer and plr.Character then
-                        if plr.Backpack:FindFirstChild("Knife") or plr.Character:FindFirstChild("Knife") then
-                            murderer = plr
-                            break
-                        end
+            if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+            local hrp = char.HumanoidRootPart
+            
+            -- 1. Fırlatılan (Uçan) Bıçak Kontrolü
+            local flyingKnifeDanger = false
+            for _, v in pairs(Workspace:GetChildren()) do
+                if v.Name == "Knife" and v:IsA("BasePart") and v.Velocity.Magnitude > 15 then
+                    if (hrp.Position - v.Position).Magnitude < 15 then
+                        flyingKnifeDanger = true
+                        break
                     end
                 end
-                
-                if murderer and murderer.Character and murderer.Character:FindFirstChild("HumanoidRootPart") then
-                    local dist = (hrp.Position - murderer.Character.HumanoidRootPart.Position).Magnitude
-                    if dist < 20 and not safeIsHiding then
-                        safeIsHiding = true
-                        safePos = hrp.CFrame
-                        hrp.CFrame = hrp.CFrame + Vector3.new(0, 60, 0)
-                        Notify("Katil yaklaştı! Güvenli konuma kaçıldı.")
-                    elseif dist > 35 and safeIsHiding then
-                        safeIsHiding = false
-                        hrp.CFrame = safePos
-                        Notify("Tehlike geçti, geri dönüldü.")
+            end
+
+            -- 2. Katil Mesafe Kontrolü
+            local murderer = nil
+            for _, plr in pairs(Players:GetPlayers()) do
+                if plr ~= LocalPlayer and plr.Character then
+                    if plr.Backpack:FindFirstChild("Knife") or plr.Character:FindFirstChild("Knife") then
+                        murderer = plr
+                        break
                     end
-                else
-                    if safeIsHiding then
-                        safeIsHiding = false
-                        hrp.CFrame = safePos
-                        Notify("Katil öldü/çıktı, geri dönüldü.")
-                    end
+                end
+            end
+            
+            local murdererDanger = false
+            local distFromTarget = math.huge
+
+            if murderer and murderer.Character and murderer.Character:FindFirstChild("HumanoidRootPart") then
+                -- EN ÖNEMLİ KISIM: Saklanıyorken mesafeyi YERDEKİ (safePos) konumuna göre ölç!
+                local measurePos = safeIsHiding and safePos.Position or hrp.Position
+                distFromTarget = (measurePos - murderer.Character.HumanoidRootPart.Position).Magnitude
+                if distFromTarget < 20 then
+                    murdererDanger = true
+                end
+            end
+
+            -- Kaçış Mantığı
+            if flyingKnifeDanger or murdererDanger then
+                if not safeIsHiding then
+                    safeIsHiding = true
+                    safePos = hrp.CFrame
+                    hrp.CFrame = hrp.CFrame + Vector3.new(0, 70, 0)
+                    Notify("TEHLİKE! Güvenli konuma kaçıldı.")
+                end
+            else
+                -- Tehlike tamamen geçtiğinde geri dön
+                if safeIsHiding and distFromTarget > 35 and not flyingKnifeDanger then
+                    safeIsHiding = false
+                    hrp.CFrame = safePos
+                    Notify("Tehlike geçti, geri dönüldü.")
                 end
             end
         end)
@@ -1345,7 +1380,9 @@ end)
 local realChar
 local fakeChar
 
-CreateToggle(UtilityCard, "Hayalet Görünmezlik", "Gerçek bedeni gizler, haritada kopyanla gezersin.", 2, function(state)
+local realChar, fakeChar, ghostPlatform
+
+CreateToggle(UtilityCard, "Hayalet Görünmezlik", "Gerçek bedeni 1000 stud yukarı gizler.", 2, function(state)
     if state then
         realChar = LocalPlayer.Character
         if realChar and realChar:FindFirstChild("HumanoidRootPart") then
@@ -1354,44 +1391,41 @@ CreateToggle(UtilityCard, "Hayalet Görünmezlik", "Gerçek bedeni gizler, harit
             fakeChar.Name = "Ghost_" .. LocalPlayer.Name
             fakeChar.Parent = Workspace
 
-            -- 1. Klonu (Senin ekranındaki bedeni) yarı şeffaf yap
             for _, v in pairs(fakeChar:GetDescendants()) do
-                if v:IsA("BasePart") or v:IsA("Decal") then
-                    if v.Name ~= "HumanoidRootPart" then
-                        v.Transparency = 0.5
-                    end
+                if (v:IsA("BasePart") or v:IsA("Decal")) and v.Name ~= "HumanoidRootPart" then
+                    v.Transparency = 0.5
                 end
             end
 
-            -- 2. Gerçek bedeni uzaya (50.000 metre yukarı) fırlat ve dondur (Kimse bulamaz)
             local realHrp = realChar:FindFirstChild("HumanoidRootPart")
-            realHrp.CFrame = realHrp.CFrame + Vector3.new(0, 1000, 0) -- Olduğu konumun 1000 birim üstüne fırlar
-            realHrp.Anchored = true
+            
+            -- Gerçek bedeni dondurmak yerine altına görünmez platform koyuyoruz! (Serverın haberi olsun diye)
+            ghostPlatform = Instance.new("Part")
+            ghostPlatform.Size = Vector3.new(20, 1, 20)
+            ghostPlatform.Position = realHrp.Position + Vector3.new(0, 1000, 0)
+            ghostPlatform.Anchored = true
+            ghostPlatform.Transparency = 1
+            ghostPlatform.Parent = Workspace
 
-            -- 3. Kamera ve yürüyüş kontrolünü Hayalete (Kopya bedene) ver
+            realHrp.CFrame = ghostPlatform.CFrame + Vector3.new(0, 5, 0)
+            -- DİKKAT: realHrp.Anchored = true YAPMIYORUZ!
+
             LocalPlayer.Character = fakeChar
             Workspace.CurrentCamera.CameraSubject = fakeChar:FindFirstChild("Humanoid")
-            Notify("Hayalet Modu AÇIK. Bedenin güvende, haritada gezebilirsin.")
+            Notify("Hayalet Modu AÇIK. Bedenin güvende.")
         end
     else
-        -- Kapatıldığında
         if realChar and realChar:FindFirstChild("HumanoidRootPart") then
             local realHrp = realChar:FindFirstChild("HumanoidRootPart")
-            realHrp.Anchored = false
-            
-            -- Gerçek bedeni, Hayaletin en son gittiği konuma ışınla!
             if fakeChar and fakeChar:FindFirstChild("HumanoidRootPart") then
                 realHrp.CFrame = fakeChar.HumanoidRootPart.CFrame
             end
-            
-            -- Kontrolü geri gerçek karakterine ver
             LocalPlayer.Character = realChar
             Workspace.CurrentCamera.CameraSubject = realChar:FindFirstChild("Humanoid")
         end
-        
-        -- Hayalet klonu yok et
         if fakeChar then fakeChar:Destroy() end
-        Notify("Hayalet Modu KAPALI. Gerçek bedene dönüldü.")
+        if ghostPlatform then ghostPlatform:Destroy() end
+        Notify("Hayalet Modu KAPALI. Geri dönüldü.")
     end
 end)
 
