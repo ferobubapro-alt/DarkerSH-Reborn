@@ -150,7 +150,7 @@ TopBar.Position = UDim2.new(0, 180, 0, 0)
 TopBar.BackgroundTransparency = 1
 TopBar.ZIndex = 5
 TopBar.Parent = MainFrame
-MakeDraggable(MainFrame, TopBar)
+MakeDraggable(MainFrame, MainFrame) -- Artık tüm arka plan sürükleme kolu olarak çalışır
 
 local SafeText = Instance.new("TextLabel")
 SafeText.Size = UDim2.new(0, 200, 1, 0)
@@ -176,7 +176,52 @@ CloseBtn.ZIndex = 6
 Instance.new("UICorner", CloseBtn).CornerRadius = UDim.new(0, 6)
 CloseBtn.Parent = TopBar
 
+-- Küçültme (Minimize) Butonu
+local MinimizeBtn = Instance.new("TextButton")
+MinimizeBtn.Size = UDim2.new(0, 30, 0, 30)
+MinimizeBtn.Position = UDim2.new(1, -75, 0, 5)
+MinimizeBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+MinimizeBtn.Text = "-"
+MinimizeBtn.Font = Enum.Font.GothamBold
+MinimizeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+MinimizeBtn.TextSize = 18
+MinimizeBtn.ZIndex = 6
+Instance.new("UICorner", MinimizeBtn).CornerRadius = UDim.new(0, 6)
+MinimizeBtn.Parent = TopBar
+
+-- Mini Logo (Küçültülmüş Hal - Floating Icon)
+local FloatingIcon = Instance.new("ImageButton")
+FloatingIcon.Name = "FloatingIcon"
+FloatingIcon.Size = UDim2.new(0, 60, 0, 60)
+FloatingIcon.Position = UDim2.new(0, 20, 0.5, -30)
+FloatingIcon.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+FloatingIcon.Image = "rbxassetid://126964821713679"
+FloatingIcon.Visible = false
+FloatingIcon.ZIndex = 500
+Instance.new("UICorner", FloatingIcon).CornerRadius = UDim.new(1, 0)
+FloatingIcon.Parent = ScreenGui
+
+-- Logoya Mor Çerçeve (Glow)
+local FIStroke = Instance.new("UIStroke")
+FIStroke.Color = Color3.fromRGB(138, 43, 226)
+FIStroke.Thickness = 2.5
+FIStroke.Parent = FloatingIcon
+
+MakeDraggable(FloatingIcon) -- Mini logoyu her yerden sürüklenebilir yapar
+
+-- Buton Tıklama İşlevleri
 CloseBtn.MouseButton1Click:Connect(function() ScreenGui:Destroy() end)
+
+MinimizeBtn.MouseButton1Click:Connect(function()
+    MainFrame.Visible = false
+    FloatingIcon.Visible = true
+    Notify("Menü küçültüldü. Logoya tıklayarak açabilirsiniz.")
+end)
+
+FloatingIcon.MouseButton1Click:Connect(function()
+    FloatingIcon.Visible = false
+    MainFrame.Visible = true
+end)
 
 -- Yan Menü (Sidebar)
 local Sidebar = Instance.new("Frame")
@@ -1101,16 +1146,56 @@ CreateToggle(UtilityCard, "Güvenli Mod", "Katil yaklaşınca kaçar, uzaklaşı
     end
 end)
 
-CreateToggle(UtilityCard, "Görünmezlik (Invisible)", "Local görünmezlik sağlar.", 2, function(state)
-    local char = LocalPlayer.Character
-    if char then
-        for _, v in pairs(char:GetDescendants()) do
-            if v:IsA("BasePart") or v:IsA("Decal") then
-                if v.Name ~= "HumanoidRootPart" then
-                    v.Transparency = state and 1 or 0
+local realChar
+local fakeChar
+
+CreateToggle(UtilityCard, "Hayalet Görünmezlik", "Gerçek bedeni gizler, haritada kopyanla gezersin.", 2, function(state)
+    if state then
+        realChar = LocalPlayer.Character
+        if realChar and realChar:FindFirstChild("HumanoidRootPart") then
+            realChar.Archivable = true
+            fakeChar = realChar:Clone()
+            fakeChar.Name = "Ghost_" .. LocalPlayer.Name
+            fakeChar.Parent = Workspace
+
+            -- 1. Klonu (Senin ekranındaki bedeni) yarı şeffaf yap
+            for _, v in pairs(fakeChar:GetDescendants()) do
+                if v:IsA("BasePart") or v:IsA("Decal") then
+                    if v.Name ~= "HumanoidRootPart" then
+                        v.Transparency = 0.5
+                    end
                 end
             end
+
+            -- 2. Gerçek bedeni uzaya (50.000 metre yukarı) fırlat ve dondur (Kimse bulamaz)
+            local realHrp = realChar:FindFirstChild("HumanoidRootPart")
+            realHrp.CFrame = CFrame.new(0, 50000, 0)
+            realHrp.Anchored = true
+
+            -- 3. Kamera ve yürüyüş kontrolünü Hayalete (Kopya bedene) ver
+            LocalPlayer.Character = fakeChar
+            Workspace.CurrentCamera.CameraSubject = fakeChar:FindFirstChild("Humanoid")
+            Notify("Hayalet Modu AÇIK. Bedenin güvende, haritada gezebilirsin.")
         end
+    else
+        -- Kapatıldığında
+        if realChar and realChar:FindFirstChild("HumanoidRootPart") then
+            local realHrp = realChar:FindFirstChild("HumanoidRootPart")
+            realHrp.Anchored = false
+            
+            -- Gerçek bedeni, Hayaletin en son gittiği konuma ışınla!
+            if fakeChar and fakeChar:FindFirstChild("HumanoidRootPart") then
+                realHrp.CFrame = fakeChar.HumanoidRootPart.CFrame
+            end
+            
+            -- Kontrolü geri gerçek karakterine ver
+            LocalPlayer.Character = realChar
+            Workspace.CurrentCamera.CameraSubject = realChar:FindFirstChild("Humanoid")
+        end
+        
+        -- Hayalet klonu yok et
+        if fakeChar then fakeChar:Destroy() end
+        Notify("Hayalet Modu KAPALI. Gerçek bedene dönüldü.")
     end
 end)
 
