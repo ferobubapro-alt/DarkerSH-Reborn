@@ -641,14 +641,48 @@ local FlyGUI
 local FlySpeed = 50
 local flying = false
 
-CreateToggle(HareketGrid, "Uçma (Fly)", "Joystick/WASD ve kamera yönüne duyarlı klasik uçuş. Sağda menü açılır.", function(state)
+local IdleAnimTrack = nil
+local MoveAnimTrack = nil
+
+CreateToggle(HareketGrid, "Uçma (Fly)", "Joystick/WASD ve kamera yönüne duyarlı uçuş. Özel animasyonlar içerir.", function(state)
     flying = state
     local char = LocalPlayer.Character
-    if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+    if not char or not char:FindFirstChild("HumanoidRootPart") or not char:FindFirstChild("Humanoid") then return end
     local hrp = char.HumanoidRootPart
+    local hum = char.Humanoid
+
+    -- Uçmayı durdurma ve her şeyi temizleme fonksiyonu (Hem menüden hem toggle'dan kapatmak için)
+    local function StopFly()
+        flying = false
+        if FlyConnection then FlyConnection:Disconnect() FlyConnection = nil end
+        if hrp:FindFirstChild("FlyBV") then hrp.FlyBV:Destroy() end
+        if hrp:FindFirstChild("FlyBG") then hrp.FlyBG:Destroy() end
+        if FlyGUI then FlyGUI:Destroy() FlyGUI = nil end
+        
+        -- Animasyonları durdur ve temizle
+        if IdleAnimTrack then IdleAnimTrack:Stop() IdleAnimTrack:Destroy() IdleAnimTrack = nil end
+        if MoveAnimTrack then MoveAnimTrack:Stop() MoveAnimTrack:Destroy() MoveAnimTrack = nil end
+    end
 
     if flying then
-        -- 1. Uçma Fiziklerini Oluştur
+        -- 1. Animasyonları Yükle (PlayerAnimator üzerinden)
+        local animator = hum:FindFirstChildOfClass("Animator")
+        if animator then
+            local idleAnim = Instance.new("Animation")
+            idleAnim.AnimationId = "rbxassetid://123349905320515"
+            IdleAnimTrack = animator:LoadAnimation(idleAnim)
+            IdleAnimTrack.Priority = Enum.AnimationPriority.Action -- Kendi animasyonumuzu baskın yapıyoruz
+
+            local moveAnim = Instance.new("Animation")
+            moveAnim.AnimationId = "rbxassetid://115250948577308"
+            MoveAnimTrack = animator:LoadAnimation(moveAnim)
+            MoveAnimTrack.Priority = Enum.AnimationPriority.Action
+
+            -- Başlangıçta Idle (Hareketsiz) animasyonunu oynat
+            IdleAnimTrack:Play()
+        end
+
+        -- 2. Uçma Fiziklerini Oluştur
         local bv = Instance.new("BodyVelocity")
         bv.Name = "FlyBV"
         bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
@@ -662,7 +696,7 @@ CreateToggle(HareketGrid, "Uçma (Fly)", "Joystick/WASD ve kamera yönüne duyar
         bg.CFrame = hrp.CFrame
         bg.Parent = hrp
 
-        -- 2. Fly Ayar Menüsünü Ekrana Ekle (Sağ Taraf)
+        -- 3. Fly Ayar Menüsünü Ekrana Ekle (Sağ Taraf)
         if not CoreGui:FindFirstChild("FlySettingsMenu") then
             FlyGUI = Instance.new("ScreenGui")
             FlyGUI.Name = "FlySettingsMenu"
@@ -750,28 +784,24 @@ CreateToggle(HareketGrid, "Uçma (Fly)", "Joystick/WASD ve kamera yönüne duyar
             end)
             
             BtnMinus.MouseButton1Down:Connect(function()
-                FlySpeed = math.max(10, FlySpeed - 10) -- 10'un altına düşmesini engeller
+                FlySpeed = math.max(10, FlySpeed - 10) 
                 SpeedLabel.Text = "Hız: " .. FlySpeed
             end)
             
             BtnClose.MouseButton1Down:Connect(function()
-                flying = false
-                if FlyConnection then FlyConnection:Disconnect() FlyConnection = nil end
-                if hrp:FindFirstChild("FlyBV") then hrp.FlyBV:Destroy() end
-                if hrp:FindFirstChild("FlyBG") then hrp.FlyBG:Destroy() end
-                if FlyGUI then FlyGUI:Destroy() FlyGUI = nil end
-                Notify("Fly kapatıldı. (Not: Menüdeki kart hala AÇIK görünebilir, tekrar tıklayarak eşitleyebilirsin.)")
+                StopFly()
+                Notify("Fly kapatıldı. (Menüdeki kartı eşitlemek için tekrar tıklayabilirsin.)")
             end)
         end
 
-        -- 3. Klasik Fly Döngüsü (Kamera Yönü + Joystick/Klavye Uyumlu)
+        -- 4. Klasik Fly Döngüsü (Kamera Yönü + Joystick/Klavye + Animasyon Kontrolü)
         FlyConnection = RunService.RenderStepped:Connect(function()
             if char and char:FindFirstChild("Humanoid") and hrp:FindFirstChild("FlyBV") then
                 local cam = Workspace.CurrentCamera
                 local moveDir = char.Humanoid.MoveDirection
 
                 if moveDir.Magnitude > 0 then
-                    -- Joystick / WASD yönünü kamera açısıyla harmanlayan matematik
+                    -- Hareket Halindeyiz
                     local flatLook = Vector3.new(cam.CFrame.LookVector.X, 0, cam.CFrame.LookVector.Z).Unit
                     local flatRight = Vector3.new(cam.CFrame.RightVector.X, 0, cam.CFrame.RightVector.Z).Unit
 
@@ -780,19 +810,25 @@ CreateToggle(HareketGrid, "Uçma (Fly)", "Joystick/WASD ve kamera yönüne duyar
 
                     local moveVector = (cam.CFrame.LookVector * forwardInput) + (cam.CFrame.RightVector * rightInput)
                     hrp.FlyBV.Velocity = moveVector * FlySpeed
+                    
+                    -- Animasyon Geçişi: Idle Kapat, Move Aç
+                    if IdleAnimTrack and IdleAnimTrack.IsPlaying then IdleAnimTrack:Stop() end
+                    if MoveAnimTrack and not MoveAnimTrack.IsPlaying then MoveAnimTrack:Play() end
                 else
+                    -- Hareketsiz Bekliyoruz
                     hrp.FlyBV.Velocity = Vector3.new(0, 0, 0)
+                    
+                    -- Animasyon Geçişi: Move Kapat, Idle Aç
+                    if MoveAnimTrack and MoveAnimTrack.IsPlaying then MoveAnimTrack:Stop() end
+                    if IdleAnimTrack and not IdleAnimTrack.IsPlaying then IdleAnimTrack:Play() end
                 end
                 
                 hrp.FlyBG.CFrame = cam.CFrame
             end
         end)
     else
-        -- Kapatıldığında her şeyi temizle
-        if FlyConnection then FlyConnection:Disconnect() FlyConnection = nil end
-        if hrp:FindFirstChild("FlyBV") then hrp.FlyBV:Destroy() end
-        if hrp:FindFirstChild("FlyBG") then hrp.FlyBG:Destroy() end
-        if FlyGUI then FlyGUI:Destroy() FlyGUI = nil end
+        -- Özellik Kapatıldığında her şeyi temizle
+        StopFly()
     end
 end)
 -- === OYUNCU SEKMESİ (ÖZEL GÜÇLER) ===
