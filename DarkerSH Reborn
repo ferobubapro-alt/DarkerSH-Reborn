@@ -131,6 +131,7 @@ local function Notify(text)
     NotifText.TextSize = 13
     NotifText.ZIndex = 302
     NotifText.Parent = NotifFrame
+    NotifText.TextWrapped = true
     
     NotifFrame.Parent = NotifyContainer
 
@@ -621,16 +622,30 @@ local FloatingWidgets = {}
 
 local function CreateCategoryCard(parentTab, titleText)
     local CardFrame = Instance.new("Frame")
-    CardFrame.BackgroundColor3 = Color3.fromRGB(22, 22, 26)
+    CardFrame.BackgroundColor3 = Color3.fromRGB(255, 255, 255) -- Gradient için beyaz
     CardFrame.ZIndex = 3
     CardFrame.Parent = parentTab
     Instance.new("UICorner", CardFrame).CornerRadius = UDim.new(0, 8)
 
+    -- Mor Wave Gradient
+    local CardGradient = Instance.new("UIGradient")
+    CardGradient.Color = ColorSequence.new{
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(25, 5, 40)),
+        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(60, 10, 90)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(25, 5, 40))
+    }
+    CardGradient.Rotation = 45
+    CardGradient.Parent = CardFrame
+    
+    -- Kart arka planı dalga animasyonu
+    TweenService:Create(CardGradient, TweenInfo.new(3, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), {Offset = Vector2.new(0.5, 0)}):Play()
+
+    -- İnce Parlak Beyaz Dış Çizgi
     local Stroke = Instance.new("UIStroke")
-Stroke.Color = Color3.fromRGB(255, 255, 255)
-Stroke.Transparency = 0.8
-Stroke.Thickness = 1
-Stroke.Parent = CardFrame
+    Stroke.Color = Color3.fromRGB(255, 255, 255)
+    Stroke.Transparency = 0.7
+    Stroke.Thickness = 1
+    Stroke.Parent = CardFrame
 
     local TitleLbl = Instance.new("TextLabel")
     TitleLbl.Size = UDim2.new(1, -20, 0, 30)
@@ -678,10 +693,10 @@ local function CreateQuickWidget(name, toggleCallback)
     Instance.new("UICorner", Widget).CornerRadius = UDim.new(0, 8)
     
     local UIStroke = Instance.new("UIStroke")
-UIStroke.Color = Color3.fromRGB(255, 255, 255)
-UIStroke.Transparency = 0.8
-UIStroke.Thickness = 1
-UIStroke.Parent = Widget
+    UIStroke.Color = Color3.fromRGB(255, 255, 255)
+    UIStroke.Transparency = 0.6
+    UIStroke.Thickness = 1
+    UIStroke.Parent = Widget
 
     local Btn = Instance.new("TextButton")
     Btn.Size = UDim2.new(1, 0, 1, 0)
@@ -690,35 +705,73 @@ UIStroke.Parent = Widget
     Btn.Font = Enum.Font.GothamBold
     Btn.TextColor3 = Color3.fromRGB(255, 255, 255)
     Btn.TextSize = 12
+    Btn.TextWrapped = true
     Btn.ZIndex = 101
     Btn.Parent = Widget
+
+    -- Kilit ve Düzenleme Arayüzü (Varsayılan olarak gizli)
+    local LockBtn = Instance.new("TextButton")
+    LockBtn.Size = UDim2.new(0, 25, 0, 25)
+    LockBtn.Position = UDim2.new(1, -30, 0, -10)
+    LockBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+    LockBtn.Text = "🔓"
+    LockBtn.ZIndex = 105
+    LockBtn.Visible = false
+    Instance.new("UICorner", LockBtn).CornerRadius = UDim.new(1, 0)
+    LockBtn.Parent = Widget
+
+    -- Bir önceki mesajda eklediğimiz Resize (Boyutlandırma) Kulpu
+    local ResizeHandle = nil
+    pcall(function() 
+        ResizeHandle = MakeResizable(Widget, 100, 40)
+        ResizeHandle.Visible = false 
+    end)
 
     MakeDraggable(Widget, Btn)
     FloatingWidgets[name] = Widget
 
     local isLocked = false
-    local isBig = false
+    local editMode = false
+
+    LockBtn.MouseButton1Click:Connect(function()
+        isLocked = not isLocked
+        LockBtn.Text = isLocked and "🔒" or "🔓"
+        LockBtn.BackgroundColor3 = isLocked and Color3.fromRGB(50, 200, 50) or Color3.fromRGB(200, 50, 50)
+        Widget.Active = not isLocked
+        Notify(name .. (isLocked and " Widget Kitlendi!" or " Widget Kilidi Açıldı!"))
+    end)
 
     local wIsPressed = false
     local wFired = false
     Btn.MouseButton1Down:Connect(function()
+        if isLocked then return end
         wIsPressed = true; wFired = false
         task.delay(0.5, function()
             if wIsPressed and not wFired then
                 wFired = true
-                isLocked = not isLocked
-                isBig = not isBig
-                Widget.Active = not isLocked
-                Widget.Size = isBig and UDim2.new(0, 150, 0, 50) or UDim2.new(0, 120, 0, 40)
-                UIStroke.Color = isLocked and Color3.fromRGB(200, 50, 50) or Color3.fromRGB(138, 43, 226)
-                Notify(name .. (isLocked and " Kitlendi & Büyüdü" or " Açıldı"))
+                editMode = not editMode
+                LockBtn.Visible = editMode
+                if ResizeHandle then ResizeHandle.Visible = editMode end
+                
+                if editMode then
+                    -- Ekranın ortasına pürüzsüzce getir
+                    TweenService:Create(Widget, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Position = UDim2.new(0.5, -Widget.AbsoluteSize.X/2, 0.5, -Widget.AbsoluteSize.Y/2)}):Play()
+                    UIStroke.Color = Color3.fromRGB(138, 43, 226)
+                    UIStroke.Transparency = 0
+                    Notify("Düzenleme Modu: Boyutu ayarlayabilir veya kitleyebilirsiniz.")
+                else
+                    UIStroke.Color = Color3.fromRGB(255, 255, 255)
+                    UIStroke.Transparency = 0.6
+                end
             end
         end)
     end)
 
     Btn.MouseButton1Up:Connect(function()
         wIsPressed = false
-        if not wFired then toggleCallback() end
+        if not wFired and not editMode then 
+            toggleCallback() -- Sadece düzenleme modunda değilken tıklanırsa çalışır
+        end
     end)
     Btn.MouseLeave:Connect(function() wIsPressed = false end)
 end
@@ -760,25 +813,27 @@ local function CreateToggle(parentContainer, name, description, minTier, callbac
     TierLbl.Parent = RowFrame
 
     local TitleLbl = Instance.new("TextLabel")
-    TitleLbl.Size = UDim2.new(1, -85, 0, 20)
+    TitleLbl.Size = UDim2.new(1, -85, 0, 20) -- Genişliği daraltıldı (şaltere çarpmaz)
     TitleLbl.Position = UDim2.new(0, 40, 0, 3)
     TitleLbl.BackgroundTransparency = 1
     TitleLbl.Text = name
     TitleLbl.Font = Enum.Font.GothamBold
     TitleLbl.TextColor3 = Color3.fromRGB(255, 255, 255)
     TitleLbl.TextSize = 12
+    TitleLbl.TextWrapped = true -- YAZI TAŞMASINI ENGELLER
     TitleLbl.TextXAlignment = Enum.TextXAlignment.Left
     TitleLbl.ZIndex = 5
     TitleLbl.Parent = RowFrame
 
     local DescLbl = Instance.new("TextLabel")
-    DescLbl.Size = UDim2.new(1, -50, 0, 20)
+    DescLbl.Size = UDim2.new(1, -55, 0, 20) -- Genişliği daraltıldı
     DescLbl.Position = UDim2.new(0, 10, 0, 22)
     DescLbl.BackgroundTransparency = 1
     DescLbl.Text = description
     DescLbl.Font = Enum.Font.Gotham
     DescLbl.TextColor3 = Color3.fromRGB(150, 150, 150)
     DescLbl.TextSize = 10
+    DescLbl.TextWrapped = true -- YAZI TAŞMASINI ENGELLER
     DescLbl.TextXAlignment = Enum.TextXAlignment.Left
     DescLbl.ZIndex = 5
     DescLbl.Parent = RowFrame
@@ -1403,6 +1458,46 @@ CreateToggle(VisualCard, "Sadece Katil (Murderer ESP)", "Katili Kırmızı renk 
 end)
 CreateToggle(VisualCard, "Sadece Şerif (Sheriff ESP)", "Şerifi Mavi renk ile gösterir.", 0, function(state)
     Toggles.SheriffESP = state
+end)
+-- === AYARLAR (SETTINGS) SEKMESİ ===
+local SettingsCard = CreateCategoryCard(SettingsTab, "Arayüz Ayarları (GUI)")
+
+-- Basit bir tıklanabilir Buton tasarımı (Toggle mantığından farklı olarak)
+local SizeBtnFrame = Instance.new("Frame")
+SizeBtnFrame.Size = UDim2.new(1, -5, 0, 40)
+SizeBtnFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+SizeBtnFrame.ZIndex = 4
+SizeBtnFrame.Parent = SettingsCard
+Instance.new("UICorner", SizeBtnFrame).CornerRadius = UDim.new(0, 6)
+
+local SizeBtn = Instance.new("TextButton")
+SizeBtn.Size = UDim2.new(1, 0, 1, 0)
+SizeBtn.BackgroundTransparency = 1
+SizeBtn.Text = "Arayüz Boyutunu Değiştir (Normal)"
+SizeBtn.Font = Enum.Font.GothamBold
+SizeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+SizeBtn.TextSize = 12
+SizeBtn.ZIndex = 5
+SizeBtn.Parent = SizeBtnFrame
+
+local currentSizeState = 3 -- 1: Küçük, 2: Orta, 3: Normal
+SizeBtn.MouseButton1Click:Connect(function()
+    currentSizeState = currentSizeState + 1
+    if currentSizeState > 3 then currentSizeState = 1 end
+    
+    local targetSize = UDim2.new(0, 800, 0, 520) -- Normal
+    local stateName = "Normal"
+    
+    if currentSizeState == 1 then
+        targetSize = UDim2.new(0, 480, 0, 350) -- Küçük
+        stateName = "Küçük"
+    elseif currentSizeState == 2 then
+        targetSize = UDim2.new(0, 620, 0, 420) -- Orta
+        stateName = "Orta"
+    end
+    
+    SizeBtn.Text = "Arayüz Boyutunu Değiştir (" .. stateName .. ")"
+    TweenService:Create(MainFrame, TweenInfo.new(0.4, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {Size = targetSize}):Play()
 end)
 
 -- ==========================================
