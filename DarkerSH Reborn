@@ -637,14 +637,18 @@ CreateToggle(HareketGrid, "Noclip", "Fiziksel nesnelerin ve duvarların içinden
 end)
 
 local FlyConnection
+local FlyGUI 
+local FlySpeed = 50
 local flying = false
-CreateToggle(HareketGrid, "Uçma (Fly)", "Kameranın baktığı yöne doğru uçarsın.", function(state)
+
+CreateToggle(HareketGrid, "Uçma (Fly)", "Joystick/WASD ve kamera yönüne duyarlı klasik uçuş. Sağda menü açılır.", function(state)
     flying = state
     local char = LocalPlayer.Character
     if not char or not char:FindFirstChild("HumanoidRootPart") then return end
     local hrp = char.HumanoidRootPart
 
     if flying then
+        -- 1. Uçma Fiziklerini Oluştur
         local bv = Instance.new("BodyVelocity")
         bv.Name = "FlyBV"
         bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
@@ -654,24 +658,143 @@ CreateToggle(HareketGrid, "Uçma (Fly)", "Kameranın baktığı yöne doğru uç
         local bg = Instance.new("BodyGyro")
         bg.Name = "FlyBG"
         bg.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
+        bg.P = 9e4
         bg.CFrame = hrp.CFrame
         bg.Parent = hrp
 
+        -- 2. Fly Ayar Menüsünü Ekrana Ekle (Sağ Taraf)
+        if not CoreGui:FindFirstChild("FlySettingsMenu") then
+            FlyGUI = Instance.new("ScreenGui")
+            FlyGUI.Name = "FlySettingsMenu"
+            FlyGUI.ResetOnSpawn = false
+            pcall(function() FlyGUI.Parent = CoreGui end)
+            if not FlyGUI.Parent then FlyGUI.Parent = LocalPlayer:WaitForChild("PlayerGui") end
+
+            local MenuFrame = Instance.new("Frame")
+            MenuFrame.Size = UDim2.new(0, 150, 0, 130)
+            MenuFrame.Position = UDim2.new(1, -170, 0.5, -65) -- Ekranın sağ ortası
+            MenuFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 23)
+            MenuFrame.ZIndex = 100
+            Instance.new("UICorner", MenuFrame).CornerRadius = UDim.new(0, 10)
+            
+            local Stroke = Instance.new("UIStroke")
+            Stroke.Color = Color3.fromRGB(138, 43, 226)
+            Stroke.Thickness = 1.5
+            Stroke.Parent = MenuFrame
+            MenuFrame.Parent = FlyGUI
+
+            local Title = Instance.new("TextLabel")
+            Title.Size = UDim2.new(1, 0, 0, 30)
+            Title.BackgroundTransparency = 1
+            Title.Text = "FLY AYARLARI"
+            Title.Font = Enum.Font.GothamBlack
+            Title.TextColor3 = Color3.fromRGB(138, 43, 226)
+            Title.TextSize = 12
+            Title.ZIndex = 101
+            Title.Parent = MenuFrame
+
+            local SpeedLabel = Instance.new("TextLabel")
+            SpeedLabel.Size = UDim2.new(1, 0, 0, 30)
+            SpeedLabel.Position = UDim2.new(0, 0, 0, 35)
+            SpeedLabel.BackgroundTransparency = 1
+            SpeedLabel.Text = "Hız: " .. FlySpeed
+            SpeedLabel.Font = Enum.Font.GothamBold
+            SpeedLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+            SpeedLabel.TextSize = 12
+            SpeedLabel.ZIndex = 101
+            SpeedLabel.Parent = MenuFrame
+
+            -- Hız Azalt Butonu (-)
+            local BtnMinus = Instance.new("TextButton")
+            BtnMinus.Size = UDim2.new(0, 40, 0, 30)
+            BtnMinus.Position = UDim2.new(0, 10, 0, 35)
+            BtnMinus.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
+            BtnMinus.Text = "-"
+            BtnMinus.Font = Enum.Font.GothamBold
+            BtnMinus.TextColor3 = Color3.fromRGB(255, 100, 100)
+            BtnMinus.TextSize = 16
+            BtnMinus.ZIndex = 101
+            Instance.new("UICorner", BtnMinus).CornerRadius = UDim.new(0, 6)
+            BtnMinus.Parent = MenuFrame
+
+            -- Hız Artır Butonu (+)
+            local BtnPlus = Instance.new("TextButton")
+            BtnPlus.Size = UDim2.new(0, 40, 0, 30)
+            BtnPlus.Position = UDim2.new(1, -50, 0, 35)
+            BtnPlus.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
+            BtnPlus.Text = "+"
+            BtnPlus.Font = Enum.Font.GothamBold
+            BtnPlus.TextColor3 = Color3.fromRGB(100, 255, 100)
+            BtnPlus.TextSize = 16
+            BtnPlus.ZIndex = 101
+            Instance.new("UICorner", BtnPlus).CornerRadius = UDim.new(0, 6)
+            BtnPlus.Parent = MenuFrame
+
+            -- Fly Kapat Butonu
+            local BtnClose = Instance.new("TextButton")
+            BtnClose.Size = UDim2.new(1, -20, 0, 35)
+            BtnClose.Position = UDim2.new(0, 10, 0, 80)
+            BtnClose.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+            BtnClose.Text = "UÇMAYI KAPAT"
+            BtnClose.Font = Enum.Font.GothamBold
+            BtnClose.TextColor3 = Color3.fromRGB(255, 255, 255)
+            BtnClose.TextSize = 11
+            BtnClose.ZIndex = 101
+            Instance.new("UICorner", BtnClose).CornerRadius = UDim.new(0, 6)
+            BtnClose.Parent = MenuFrame
+
+            -- Buton İşlevleri
+            BtnPlus.MouseButton1Down:Connect(function()
+                FlySpeed = FlySpeed + 10
+                SpeedLabel.Text = "Hız: " .. FlySpeed
+            end)
+            
+            BtnMinus.MouseButton1Down:Connect(function()
+                FlySpeed = math.max(10, FlySpeed - 10) -- 10'un altına düşmesini engeller
+                SpeedLabel.Text = "Hız: " .. FlySpeed
+            end)
+            
+            BtnClose.MouseButton1Down:Connect(function()
+                flying = false
+                if FlyConnection then FlyConnection:Disconnect() FlyConnection = nil end
+                if hrp:FindFirstChild("FlyBV") then hrp.FlyBV:Destroy() end
+                if hrp:FindFirstChild("FlyBG") then hrp.FlyBG:Destroy() end
+                if FlyGUI then FlyGUI:Destroy() FlyGUI = nil end
+                Notify("Fly kapatıldı. (Not: Menüdeki kart hala AÇIK görünebilir, tekrar tıklayarak eşitleyebilirsin.)")
+            end)
+        end
+
+        -- 3. Klasik Fly Döngüsü (Kamera Yönü + Joystick/Klavye Uyumlu)
         FlyConnection = RunService.RenderStepped:Connect(function()
             if char and char:FindFirstChild("Humanoid") and hrp:FindFirstChild("FlyBV") then
                 local cam = Workspace.CurrentCamera
                 local moveDir = char.Humanoid.MoveDirection
-                hrp.FlyBV.Velocity = cam.CFrame:VectorToWorldSpace(moveDir) * 50
-                hrp.FlyBG.CFrame = CFrame.new(hrp.Position, hrp.Position + cam.CFrame.LookVector)
+
+                if moveDir.Magnitude > 0 then
+                    -- Joystick / WASD yönünü kamera açısıyla harmanlayan matematik
+                    local flatLook = Vector3.new(cam.CFrame.LookVector.X, 0, cam.CFrame.LookVector.Z).Unit
+                    local flatRight = Vector3.new(cam.CFrame.RightVector.X, 0, cam.CFrame.RightVector.Z).Unit
+
+                    local forwardInput = flatLook:Dot(moveDir)
+                    local rightInput = flatRight:Dot(moveDir)
+
+                    local moveVector = (cam.CFrame.LookVector * forwardInput) + (cam.CFrame.RightVector * rightInput)
+                    hrp.FlyBV.Velocity = moveVector * FlySpeed
+                else
+                    hrp.FlyBV.Velocity = Vector3.new(0, 0, 0)
+                end
+                
+                hrp.FlyBG.CFrame = cam.CFrame
             end
         end)
     else
+        -- Kapatıldığında her şeyi temizle
         if FlyConnection then FlyConnection:Disconnect() FlyConnection = nil end
         if hrp:FindFirstChild("FlyBV") then hrp.FlyBV:Destroy() end
         if hrp:FindFirstChild("FlyBG") then hrp.FlyBG:Destroy() end
+        if FlyGUI then FlyGUI:Destroy() FlyGUI = nil end
     end
 end)
-
 -- === OYUNCU SEKMESİ (ÖZEL GÜÇLER) ===
 local UtilityGrid = CreateSection(PlayerTab, "Özel Güçler (Utility)")
 
