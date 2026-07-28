@@ -418,13 +418,14 @@ local function CreateToggle(parentTab, name, description, callback)
     end)
 end
 -- ==========================================
--- YENİ NESİL KART / GRID OLUŞTURUCU FONKSİYONLAR
+-- YENİ NESİL KART / GRID OLUŞTURUCU FONKSİYONLAR (TIKLAMA DÜZELTİLDİ)
 -- ==========================================
 
 local function CreateSection(parentTab, titleText)
     local SectionTitleFrame = Instance.new("Frame")
     SectionTitleFrame.Size = UDim2.new(1, -10, 0, 30)
     SectionTitleFrame.BackgroundTransparency = 1
+    SectionTitleFrame.ZIndex = 3
     SectionTitleFrame.Parent = parentTab
 
     local Title = Instance.new("TextLabel")
@@ -436,11 +437,13 @@ local function CreateSection(parentTab, titleText)
     Title.TextColor3 = Color3.fromRGB(138, 43, 226)
     Title.TextSize = 13
     Title.TextXAlignment = Enum.TextXAlignment.Left
+    Title.ZIndex = 4
     Title.Parent = SectionTitleFrame
 
     local GridContainer = Instance.new("Frame")
     GridContainer.Size = UDim2.new(1, -10, 0, 0)
     GridContainer.BackgroundTransparency = 1
+    GridContainer.ZIndex = 3
     GridContainer.Parent = parentTab
 
     local GridLayout = Instance.new("UIGridLayout")
@@ -449,6 +452,13 @@ local function CreateSection(parentTab, titleText)
     GridLayout.SortOrder = Enum.SortOrder.LayoutOrder
     GridLayout.Parent = GridContainer
 
+    -- Tıklama sorununu çözen boyutlandırma onarımı:
+    task.delay(0.1, function()
+        pcall(function()
+            GridContainer.Size = UDim2.new(1, -10, 0, GridLayout.AbsoluteContentSize.Y)
+        end)
+    end)
+    
     GridLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
         GridContainer.Size = UDim2.new(1, -10, 0, GridLayout.AbsoluteContentSize.Y)
     end)
@@ -459,6 +469,7 @@ end
 local function CreateToggle(parentContainer, name, description, callback)
     local CardFrame = Instance.new("Frame")
     CardFrame.BackgroundColor3 = Color3.fromRGB(22, 22, 26)
+    CardFrame.ZIndex = 3
     CardFrame.Parent = parentContainer
     Instance.new("UICorner", CardFrame).CornerRadius = UDim.new(0, 8)
     
@@ -475,6 +486,7 @@ local function CreateToggle(parentContainer, name, description, callback)
     TitleLbl.TextColor3 = Color3.fromRGB(255, 255, 255)
     TitleLbl.TextSize = 12
     TitleLbl.TextXAlignment = Enum.TextXAlignment.Left
+    TitleLbl.ZIndex = 4
     TitleLbl.Parent = CardFrame
 
     local DescLbl = Instance.new("TextLabel")
@@ -488,6 +500,7 @@ local function CreateToggle(parentContainer, name, description, callback)
     DescLbl.TextXAlignment = Enum.TextXAlignment.Left
     DescLbl.TextWrapped = true
     DescLbl.TextYAlignment = Enum.TextYAlignment.Top
+    DescLbl.ZIndex = 4
     DescLbl.Parent = CardFrame
 
     local ToggleBtn = Instance.new("TextButton")
@@ -499,6 +512,8 @@ local function CreateToggle(parentContainer, name, description, callback)
     ToggleBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
     ToggleBtn.TextSize = 11
     ToggleBtn.AutoButtonColor = true
+    ToggleBtn.Active = true
+    ToggleBtn.ZIndex = 5 -- Butonu en üst katmana taşıdık (Tıklanmayı bu düzeltiyor)
     Instance.new("UICorner", ToggleBtn).CornerRadius = UDim.new(0, 6)
     ToggleBtn.Parent = CardFrame
 
@@ -520,7 +535,6 @@ local function CreateToggle(parentContainer, name, description, callback)
         pcall(function() callback(toggled) end)
     end)
 end
-
 -- ==========================================
 -- 4. ÖZELLİKLER VE MM2 MANTIKLARI
 -- ==========================================
