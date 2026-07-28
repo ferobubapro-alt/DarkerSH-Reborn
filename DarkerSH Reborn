@@ -51,6 +51,7 @@ local function MakeDraggable(gui, dragPart)
         end
     end)
 end
+
 local function MakeResizable(gui, minSizeX, minSizeY)
     local ResizeHandle = Instance.new("TextButton")
     ResizeHandle.Size = UDim2.new(0, 20, 0, 20)
@@ -151,24 +152,22 @@ end
 -- ==========================================
 -- KEY & YETKİLENDİRME SİSTEMİ
 -- ==========================================
--- -1 = Bekleniyor, 0 = Free, 1 = Premium-Lite, 2 = Premium
 local UserTierValue = -1 
 local TierNames = {[-1] = "Giriş Bekleniyor", [0] = "Free", [1] = "Premium-Lite", [2] = "Premium"}
 
 -- ==========================================
--- ANA ARAYÜZ (Genişletildi ve Dalga Efekti Eklendi)
+-- ANA ARAYÜZ
 -- ==========================================
 local MainFrame = Instance.new("Frame")
 MainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
 MainFrame.Position = UDim2.new(0.5, 0, 0.5, 45)
-MainFrame.Size = UDim2.new(0, 800, 0, 520) -- YANA DOĞRU GENİŞLETİLDİ
-MainFrame.BackgroundColor3 = Color3.fromRGB(255, 255, 255) -- Gradient için beyaz
+MainFrame.Size = UDim2.new(0, 800, 0, 520)
+MainFrame.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 MainFrame.Visible = false
 MainFrame.Active = true
 MainFrame.ZIndex = 1
 MainFrame.Parent = ScreenGui
 Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 12)
--- Menüyü boyutlandırılabilir yapan kodu buraya ekliyoruz:
 MakeResizable(MainFrame, 480, 420)
 
 local MainGradient = Instance.new("UIGradient")
@@ -180,14 +179,12 @@ MainGradient.Color = ColorSequence.new{
 MainGradient.Rotation = 45
 MainGradient.Parent = MainFrame
 
--- Ana Menü Parlak Beyaz Dış Çizgi (Tablonun DIŞINA alındı)
 local MainStroke = Instance.new("UIStroke")
 MainStroke.Color = Color3.fromRGB(255, 255, 255)
 MainStroke.Transparency = 0.5
 MainStroke.Thickness = 1.5
 MainStroke.Parent = MainFrame
 
--- Arka Plan Dalga (Wave) Animasyonu
 local waveTweenInfo = TweenInfo.new(4, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true)
 TweenService:Create(MainGradient, waveTweenInfo, {Offset = Vector2.new(0.5, 0)}):Play()
 
@@ -198,7 +195,7 @@ TopBar.Position = UDim2.new(0, 180, 0, 0)
 TopBar.BackgroundTransparency = 1
 TopBar.ZIndex = 5
 TopBar.Parent = MainFrame
-MakeDraggable(MainFrame, MainFrame) -- Artık tüm arka plan sürükleme kolu olarak çalışır
+MakeDraggable(MainFrame, MainFrame)
 
 local SafeText = Instance.new("TextLabel")
 SafeText.Size = UDim2.new(0, 200, 1, 0)
@@ -224,7 +221,6 @@ CloseBtn.ZIndex = 6
 Instance.new("UICorner", CloseBtn).CornerRadius = UDim.new(0, 6)
 CloseBtn.Parent = TopBar
 
--- Küçültme (Minimize) Butonu
 local MinimizeBtn = Instance.new("TextButton")
 MinimizeBtn.Size = UDim2.new(0, 30, 0, 30)
 MinimizeBtn.Position = UDim2.new(1, -75, 0, 5)
@@ -237,7 +233,6 @@ MinimizeBtn.ZIndex = 6
 Instance.new("UICorner", MinimizeBtn).CornerRadius = UDim.new(0, 6)
 MinimizeBtn.Parent = TopBar
 
--- Mini Logo (Küçültülmüş Hal - Floating Icon)
 local FloatingIcon = Instance.new("ImageButton")
 FloatingIcon.Name = "FloatingIcon"
 FloatingIcon.Size = UDim2.new(0, 60, 0, 60)
@@ -249,15 +244,13 @@ FloatingIcon.ZIndex = 500
 Instance.new("UICorner", FloatingIcon).CornerRadius = UDim.new(1, 0)
 FloatingIcon.Parent = ScreenGui
 
--- Logoya Mor Çerçeve (Glow)
 local FIStroke = Instance.new("UIStroke")
 FIStroke.Color = Color3.fromRGB(138, 43, 226)
 FIStroke.Thickness = 2.5
 FIStroke.Parent = FloatingIcon
 
-MakeDraggable(FloatingIcon) -- Mini logoyu her yerden sürüklenebilir yapar
+MakeDraggable(FloatingIcon)
 
--- Buton Tıklama İşlevleri
 CloseBtn.MouseButton1Click:Connect(function() ScreenGui:Destroy() end)
 
 MinimizeBtn.MouseButton1Click:Connect(function()
@@ -276,11 +269,10 @@ FloatingIcon.MouseButton1Click:Connect(function()
     FloatingIcon.Visible = false
     MainFrame.Visible = true
     MainFrame.Size = UDim2.new(0, 0, 0, 0)
-    -- MainFrame genişliğini ne kullanıyorsan (Örn: 620) buraya yaz:
     TweenService:Create(MainFrame, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = UDim2.new(0, 800, 0, 520)}):Play()
 end)
 
--- Yan Menü (Sidebar)
+-- Yan Menü
 local Sidebar = Instance.new("Frame")
 Sidebar.Size = UDim2.new(0, 180, 1, 0)
 Sidebar.BackgroundColor3 = Color3.fromRGB(20, 20, 23)
@@ -310,7 +302,7 @@ Title.TextXAlignment = Enum.TextXAlignment.Center
 Title.ZIndex = 3
 Title.Parent = Sidebar
 
--- Profil Kısmı (Sidebar En Alt)
+-- Profil Kısmı
 local ProfileFrame = Instance.new("Frame")
 ProfileFrame.Size = UDim2.new(1, 0, 0, 65)
 ProfileFrame.Position = UDim2.new(0, 0, 1, -65)
@@ -359,10 +351,10 @@ TierText.ZIndex = 5
 TierText.Parent = TierBadge
 
 -- ==========================================
--- 3. SEKMELER (TABS) SİSTEMİ
+-- SEKMELER (TABS) SİSTEMİ
 -- ==========================================
 local TabContainer = Instance.new("ScrollingFrame")
-TabContainer.Size = UDim2.new(1, -10, 1, -210) -- Profil için yer bırakıldı
+TabContainer.Size = UDim2.new(1, -10, 1, -210)
 TabContainer.Position = UDim2.new(0, 5, 0, 135)
 TabContainer.BackgroundTransparency = 1
 TabContainer.BorderSizePixel = 0
@@ -409,7 +401,6 @@ local function CreateTab(name, isDefault, useGrid)
     TabPage.Parent = ContentContainer
 
     if useGrid then
-        -- KARTLARIN YAN YANA DİZİLMESİ İÇİN UIGRIDLAYOUT
         local PageLayout = Instance.new("UIGridLayout")
         PageLayout.CellSize = UDim2.new(0, 290, 0, 230)
         PageLayout.CellPadding = UDim2.new(0, 10, 0, 10)
@@ -427,7 +418,7 @@ local function CreateTab(name, isDefault, useGrid)
         for tName, tabData in pairs(Tabs) do
             if tName == name then
                 if not tabData.Page.Visible then
-                    tabData.Page.Position = UDim2.new(-1, 0, 0, 0) -- Soldan başlat
+                    tabData.Page.Position = UDim2.new(-1, 0, 0, 0)
                     tabData.Page.Visible = true
                     TweenService:Create(tabData.Page, TweenInfo.new(0.35, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {Position = UDim2.new(0, 0, 0, 0)}):Play()
                 end
@@ -446,11 +437,6 @@ local function CreateTab(name, isDefault, useGrid)
         TabBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
     end
 
-    if isDefault then
-        TabBtn.BackgroundColor3 = Color3.fromRGB(138, 43, 226)
-        TabBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    end
-
     return TabPage
 end
 
@@ -462,9 +448,10 @@ local FarmTab = CreateTab("Farm", false, true)
 local PlayerTab = CreateTab("Oyuncu", false, true)
 local CombatTab = CreateTab("Savaş", false, true)
 local VisualTab = CreateTab("Görsel", false, true)
-local SettingsTab = CreateTab("Ayarlar", false, true) -- BURASI EKLENDİ
+local SettingsTab = CreateTab("Ayarlar", false, true)
+
 -- ==========================================
--- ANA MENÜ (HOME) TASARIMI VE KEY SİSTEMİ
+-- ANA MENÜ (HOME) TASARIMI VE İSTATİSTİKLER
 -- ==========================================
 local WelcomeTitle = Instance.new("TextLabel")
 WelcomeTitle.Size = UDim2.new(1, 0, 0, 40)
@@ -477,7 +464,6 @@ WelcomeTitle.TextSize = 22
 WelcomeTitle.ZIndex = 3
 WelcomeTitle.Parent = HomeTab
 
--- İstatistik Kartları Çerçevesi
 local StatsFrame = Instance.new("Frame")
 StatsFrame.Size = UDim2.new(1, -20, 0, 200)
 StatsFrame.Position = UDim2.new(0, 10, 0, 70)
@@ -534,11 +520,9 @@ local FriendVal = CreateStatCard("ARKADAŞ DURUMU", "Yok")
 local StartTime = os.time()
 RunService.RenderStepped:Connect(function()
     if HomeTab.Visible then
-        FpsVal.Text = tostring(math.floor(Workspace:GetRealPhysicsFPS())) .. " FPS"
-        
+        FpsVal.Text = tostring(math.floor(Workspace:GetRealPhysicsFPS())) .." FPS"
         local ping = Stats.Network.ServerStatsItem["Data Ping"]:GetValue()
-        PingVal.Text = tostring(math.floor(ping)) .. " ms"
-        
+        PingVal.Text = tostring(math.floor(ping)) .." ms"
         local passed = os.time() - StartTime
         local mins = math.floor(passed / 60)
         local secs = passed % 60
@@ -559,9 +543,9 @@ end)
 -- ==========================================
 local KeyDrawer = Instance.new("Frame")
 KeyDrawer.Size = UDim2.new(0, 250, 0, 150)
-KeyDrawer.Position = UDim2.new(1, -10, 0.5, -75) -- MainFrame'in arkasında gizli
+KeyDrawer.Position = UDim2.new(1, -10, 0.5, -75)
 KeyDrawer.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
-KeyDrawer.ZIndex = 0 -- MainFrame'in arkasında kalması için
+KeyDrawer.ZIndex = 0
 KeyDrawer.Parent = MainFrame
 Instance.new("UICorner", KeyDrawer).CornerRadius = UDim.new(0, 10)
 
@@ -570,7 +554,6 @@ DrawerStroke.Color = Color3.fromRGB(138, 43, 226)
 DrawerStroke.Thickness = 1.5
 DrawerStroke.Parent = KeyDrawer
 
--- Çekmeceyi Açıp Kapatacak Yan Buton
 local DrawerToggle = Instance.new("TextButton")
 DrawerToggle.Size = UDim2.new(0, 40, 0, 40)
 DrawerToggle.Position = UDim2.new(1, 5, 0.5, -20)
@@ -650,18 +633,17 @@ VerifyBtn.MouseButton1Click:Connect(function()
 end)
 
 -- ==========================================
--- BÜYÜK KART VE TIKLAMA WIDGET SİSTEMİ
+-- KART VE WIDGET SİSTEMİ
 -- ==========================================
 local FloatingWidgets = {}
 
 local function CreateCategoryCard(parentTab, titleText)
     local CardFrame = Instance.new("Frame")
-    CardFrame.BackgroundColor3 = Color3.fromRGB(255, 255, 255) -- Gradient için beyaz
+    CardFrame.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
     CardFrame.ZIndex = 3
     CardFrame.Parent = parentTab
     Instance.new("UICorner", CardFrame).CornerRadius = UDim.new(0, 8)
 
-    -- Mor Wave Gradient
     local CardGradient = Instance.new("UIGradient")
     CardGradient.Color = ColorSequence.new{
         ColorSequenceKeypoint.new(0, Color3.fromRGB(25, 5, 40)),
@@ -671,10 +653,8 @@ local function CreateCategoryCard(parentTab, titleText)
     CardGradient.Rotation = 45
     CardGradient.Parent = CardFrame
     
-    -- Kart arka planı dalga animasyonu
     TweenService:Create(CardGradient, TweenInfo.new(3, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), {Offset = Vector2.new(0.5, 0)}):Play()
 
-    -- İnce Parlak Beyaz Dış Çizgi
     local Stroke = Instance.new("UIStroke")
     Stroke.Color = Color3.fromRGB(255, 255, 255)
     Stroke.Transparency = 0.7
@@ -743,7 +723,6 @@ local function CreateQuickWidget(name, toggleCallback)
     Btn.ZIndex = 101
     Btn.Parent = Widget
 
-    -- Kilit ve Düzenleme Arayüzü (Varsayılan olarak gizli)
     local LockBtn = Instance.new("TextButton")
     LockBtn.Size = UDim2.new(0, 25, 0, 25)
     LockBtn.Position = UDim2.new(1, -30, 0, -10)
@@ -754,7 +733,6 @@ local function CreateQuickWidget(name, toggleCallback)
     Instance.new("UICorner", LockBtn).CornerRadius = UDim.new(1, 0)
     LockBtn.Parent = Widget
 
-    -- Bir önceki mesajda eklediğimiz Resize (Boyutlandırma) Kulpu
     local ResizeHandle = nil
     pcall(function() 
         ResizeHandle = MakeResizable(Widget, 100, 40)
@@ -788,7 +766,6 @@ local function CreateQuickWidget(name, toggleCallback)
                 if ResizeHandle then ResizeHandle.Visible = editMode end
                 
                 if editMode then
-                    -- Ekranın ortasına pürüzsüzce getir
                     TweenService:Create(Widget, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Position = UDim2.new(0.5, -Widget.AbsoluteSize.X/2, 0.5, -Widget.AbsoluteSize.Y/2)}):Play()
                     UIStroke.Color = Color3.fromRGB(138, 43, 226)
                     UIStroke.Transparency = 0
@@ -804,7 +781,7 @@ local function CreateQuickWidget(name, toggleCallback)
     Btn.MouseButton1Up:Connect(function()
         wIsPressed = false
         if not wFired and not editMode then 
-            toggleCallback() -- Sadece düzenleme modunda değilken tıklanırsa çalışır
+            toggleCallback()
         end
     end)
     Btn.MouseLeave:Connect(function() wIsPressed = false end)
@@ -818,7 +795,6 @@ local function RemoveQuickWidget(name)
     end
 end
 
--- Toggles (Tier sistemi ile)
 local function CreateToggle(parentContainer, name, description, minTier, callback)
     local RowFrame = Instance.new("Frame")
     RowFrame.Size = UDim2.new(1, -5, 0, 45)
@@ -847,27 +823,27 @@ local function CreateToggle(parentContainer, name, description, minTier, callbac
     TierLbl.Parent = RowFrame
 
     local TitleLbl = Instance.new("TextLabel")
-    TitleLbl.Size = UDim2.new(1, -85, 0, 20) -- Genişliği daraltıldı (şaltere çarpmaz)
+    TitleLbl.Size = UDim2.new(1, -85, 0, 20)
     TitleLbl.Position = UDim2.new(0, 40, 0, 3)
     TitleLbl.BackgroundTransparency = 1
     TitleLbl.Text = name
     TitleLbl.Font = Enum.Font.GothamBold
     TitleLbl.TextColor3 = Color3.fromRGB(255, 255, 255)
     TitleLbl.TextSize = 12
-    TitleLbl.TextWrapped = true -- YAZI TAŞMASINI ENGELLER
+    TitleLbl.TextWrapped = true
     TitleLbl.TextXAlignment = Enum.TextXAlignment.Left
     TitleLbl.ZIndex = 5
     TitleLbl.Parent = RowFrame
 
     local DescLbl = Instance.new("TextLabel")
-    DescLbl.Size = UDim2.new(1, -55, 0, 20) -- Genişliği daraltıldı
+    DescLbl.Size = UDim2.new(1, -55, 0, 20)
     DescLbl.Position = UDim2.new(0, 10, 0, 22)
     DescLbl.BackgroundTransparency = 1
     DescLbl.Text = description
     DescLbl.Font = Enum.Font.Gotham
     DescLbl.TextColor3 = Color3.fromRGB(150, 150, 150)
     DescLbl.TextSize = 10
-    DescLbl.TextWrapped = true -- YAZI TAŞMASINI ENGELLER
+    DescLbl.TextWrapped = true
     DescLbl.TextXAlignment = Enum.TextXAlignment.Left
     DescLbl.ZIndex = 5
     DescLbl.Parent = RowFrame
@@ -939,7 +915,7 @@ local function CreateToggle(parentContainer, name, description, minTier, callbac
 end
 
 -- ==========================================
--- ÖZELLİKLER VE MM2 MANTIKLARI
+-- ÖZELLİKLER VE SEKMELER
 -- ==========================================
 local Toggles = {AutoCoin = false, AutoGun = false, AutoKill = false, AntiAFK = false, SafeMode = false, PlayerESP = false, MurdererESP = false, SheriffESP = false, ShootMurderer = false}
 
@@ -1016,15 +992,13 @@ CreateToggle(FarmCard, "Akıllı Silah Topla", "Silaha ışınlanıp eski yerine
     end
 end)
 
--- === SAVAŞ (COMBAT) SEKMESİ ===
+-- === SAVAŞ SEKMESİ ===
 local CombatCard = CreateCategoryCard(CombatTab, "Saldırı ve Savunma")
-
 local savedPositions = {}
 
 CreateToggle(CombatCard, "Otomatik Katlet", "Herkesi önüne çeker ve katleder.", 2, function(state)
     Toggles.AutoKill = state
     if state then
-        -- 1. Açıldığında herkesin orijinal konumunu kaydet
         savedPositions = {}
         for _, plr in pairs(Players:GetPlayers()) do
             if plr ~= LocalPlayer and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
@@ -1033,7 +1007,6 @@ CreateToggle(CombatCard, "Otomatik Katlet", "Herkesi önüne çeker ve katleder.
         end
         Notify("Herkes önüne getiriliyor...")
         
-        -- 2. Herkesi önüne kitle ve bıçakla
         task.spawn(function()
             while Toggles.AutoKill do
                 local char = LocalPlayer.Character
@@ -1050,7 +1023,6 @@ CreateToggle(CombatCard, "Otomatik Katlet", "Herkesi önüne çeker ve katleder.
                         if plr ~= LocalPlayer and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
                             local targetHrp = plr.Character.HumanoidRootPart
                             local hum = plr.Character:FindFirstChild("Humanoid")
-                            -- Sadece yaşayanları önüne çek (iç içe)
                             if hum and hum.Health > 0 then
                                 targetHrp.CFrame = myHrp.CFrame * CFrame.new(0, 0, -3)
                             end
@@ -1061,7 +1033,6 @@ CreateToggle(CombatCard, "Otomatik Katlet", "Herkesi önüne çeker ve katleder.
             end
         end)
     else
-        -- 3. Kapatıldığında herkesi sunucudaki eski konumuna geri fırlat
         for plr, oldCFrame in pairs(savedPositions) do
             if plr and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
                 plr.Character.HumanoidRootPart.CFrame = oldCFrame
@@ -1089,25 +1060,22 @@ CreateToggle(CombatCard, "Katili Vur", "Eline silahı alır ve fiziksel olarak k
                 end
                 
                 if murderer and murderer.Character and murderer.Character:FindFirstChild("HumanoidRootPart") then
-                    -- Silahı ele al
                     if gun.Parent ~= char then gun.Parent = char end
                     
                     local hrp = char.HumanoidRootPart
                     local targetPos = murderer.Character.HumanoidRootPart.Position
                     
-                    -- Karakteri ve kamerayı tam olarak katile döndür
                     Workspace.CurrentCamera.CFrame = CFrame.lookAt(Workspace.CurrentCamera.CFrame.Position, targetPos)
                     hrp.CFrame = CFrame.lookAt(hrp.Position, Vector3.new(targetPos.X, hrp.Position.Y, targetPos.Z))
                     
                     task.wait(0.1)
                     
-                    -- MM2 için garanti ateşleme kombinasyonu (Hem Activate hem de fiziksel Mouse tıklaması simülasyonu)
                     gun:Activate()
                     VirtualUser:Button1Down(Vector2.new(0,0), Workspace.CurrentCamera.CFrame)
                     task.wait(0.05)
                     VirtualUser:Button1Up(Vector2.new(0,0), Workspace.CurrentCamera.CFrame)
                     
-                    Toggles.ShootMurderer = false -- Sıktıktan sonra kendini kapatsın
+                    Toggles.ShootMurderer = false
                     Notify("Katilin üstüne tıklandı ve ateş edildi!")
                 end
             end
@@ -1115,14 +1083,13 @@ CreateToggle(CombatCard, "Katili Vur", "Eline silahı alır ve fiziksel olarak k
     end
 end)
 
--- === OYUNCU (PLAYER) SEKMESİ ===
+-- === OYUNCU SEKMESİ ===
 local HareketCard = CreateCategoryCard(PlayerTab, "Hareket")
 local UtilityCard = CreateCategoryCard(PlayerTab, "Özel Güçler")
 
 local WalkSpeedGUI
 local CurrentSpeed = 50
 
--- DİKKAT: function(state) öncesindeki '0' rakamı, özelliğin Free tier olduğunu belirtir!
 CreateToggle(HareketCard, "Hızlı Yürüme", "Yürüme hızını ayarlar ve yanda menü açar.", 0, function(state)
     local char = LocalPlayer.Character
     if not char or not char:FindFirstChild("Humanoid") then return end
@@ -1253,7 +1220,6 @@ CreateToggle(HareketCard, "Pürüzsüz Uçuş (Fly)", "Premium animasyon destekl
         hum.PlatformStand = true 
         hum.AutoRotate = false
 
-        -- Animasyonları Sadece Premium (Tier 2) isek oynat
         if UserTierValue >= 2 then
             local animator = hum:FindFirstChildOfClass("Animator")
             if animator then
@@ -1389,7 +1355,6 @@ CreateToggle(UtilityCard, "Güvenli Mod", "Katilden ve fırlatılan bıçaktan k
             if not char or not char:FindFirstChild("HumanoidRootPart") then return end
             local hrp = char.HumanoidRootPart
             
-            -- 1. Fırlatılan (Uçan) Bıçak Kontrolü
             local flyingKnifeDanger = false
             for _, v in pairs(Workspace:GetChildren()) do
                 if v.Name == "Knife" and v:IsA("BasePart") and v.Velocity.Magnitude > 15 then
@@ -1400,7 +1365,6 @@ CreateToggle(UtilityCard, "Güvenli Mod", "Katilden ve fırlatılan bıçaktan k
                 end
             end
 
-            -- 2. Katil Mesafe Kontrolü
             local murderer = nil
             for _, plr in pairs(Players:GetPlayers()) do
                 if plr ~= LocalPlayer and plr.Character then
@@ -1415,7 +1379,6 @@ CreateToggle(UtilityCard, "Güvenli Mod", "Katilden ve fırlatılan bıçaktan k
             local distFromTarget = math.huge
 
             if murderer and murderer.Character and murderer.Character:FindFirstChild("HumanoidRootPart") then
-                -- EN ÖNEMLİ KISIM: Saklanıyorken mesafeyi YERDEKİ (safePos) konumuna göre ölç!
                 local measurePos = safeIsHiding and safePos.Position or hrp.Position
                 distFromTarget = (measurePos - murderer.Character.HumanoidRootPart.Position).Magnitude
                 if distFromTarget < 20 then
@@ -1423,7 +1386,6 @@ CreateToggle(UtilityCard, "Güvenli Mod", "Katilden ve fırlatılan bıçaktan k
                 end
             end
 
-            -- Kaçış Mantığı
             if flyingKnifeDanger or murdererDanger then
                 if not safeIsHiding then
                     safeIsHiding = true
@@ -1432,7 +1394,6 @@ CreateToggle(UtilityCard, "Güvenli Mod", "Katilden ve fırlatılan bıçaktan k
                     Notify("TEHLİKE! Güvenli konuma kaçıldı.")
                 end
             else
-                -- Tehlike tamamen geçtiğinde geri dön
                 if safeIsHiding and distFromTarget > 35 and not flyingKnifeDanger then
                     safeIsHiding = false
                     hrp.CFrame = safePos
@@ -1442,9 +1403,6 @@ CreateToggle(UtilityCard, "Güvenli Mod", "Katilden ve fırlatılan bıçaktan k
         end)
     end
 end)
-
-local realChar
-local fakeChar
 
 local realChar, fakeChar, ghostPlatform
 
@@ -1465,7 +1423,6 @@ CreateToggle(UtilityCard, "Hayalet Görünmezlik", "Gerçek bedeni 1000 stud yuk
 
             local realHrp = realChar:FindFirstChild("HumanoidRootPart")
             
-            -- Gerçek bedeni dondurmak yerine altına görünmez platform koyuyoruz! (Serverın haberi olsun diye)
             ghostPlatform = Instance.new("Part")
             ghostPlatform.Size = Vector3.new(20, 1, 20)
             ghostPlatform.Position = realHrp.Position + Vector3.new(0, 1000, 0)
@@ -1474,7 +1431,6 @@ CreateToggle(UtilityCard, "Hayalet Görünmezlik", "Gerçek bedeni 1000 stud yuk
             ghostPlatform.Parent = Workspace
 
             realHrp.CFrame = ghostPlatform.CFrame + Vector3.new(0, 5, 0)
-            -- DİKKAT: realHrp.Anchored = true YAPMIYORUZ!
 
             LocalPlayer.Character = fakeChar
             Workspace.CurrentCamera.CameraSubject = fakeChar:FindFirstChild("Humanoid")
@@ -1495,7 +1451,7 @@ CreateToggle(UtilityCard, "Hayalet Görünmezlik", "Gerçek bedeni 1000 stud yuk
     end
 end)
 
--- === GÖRSEL (VISUAL) SEKMESİ (ESP) ===
+-- === GÖRSEL SEKMESİ (ESP) ===
 local VisualCard = CreateCategoryCard(VisualTab, "Oyuncu İzleme (ESP)")
 local ESPFolder = Instance.new("Folder")
 ESPFolder.Name = "DarkerSH_ESP"
@@ -1559,10 +1515,10 @@ end)
 CreateToggle(VisualCard, "Sadece Şerif (Sheriff ESP)", "Şerifi Mavi renk ile gösterir.", 0, function(state)
     Toggles.SheriffESP = state
 end)
--- === AYARLAR (SETTINGS) SEKMESİ ===
+
+-- === AYARLAR SEKMESİ ===
 local SettingsCard = CreateCategoryCard(SettingsTab, "Arayüz Ayarları (GUI)")
 
--- Basit bir tıklanabilir Buton tasarımı (Toggle mantığından farklı olarak)
 local SizeBtnFrame = Instance.new("Frame")
 SizeBtnFrame.Size = UDim2.new(1, -5, 0, 40)
 SizeBtnFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
@@ -1580,19 +1536,19 @@ SizeBtn.TextSize = 12
 SizeBtn.ZIndex = 5
 SizeBtn.Parent = SizeBtnFrame
 
-local currentSizeState = 3 -- 1: Küçük, 2: Orta, 3: Normal
+local currentSizeState = 3
 SizeBtn.MouseButton1Click:Connect(function()
     currentSizeState = currentSizeState + 1
     if currentSizeState > 3 then currentSizeState = 1 end
     
-    local targetSize = UDim2.new(0, 800, 0, 520) -- Normal
+    local targetSize = UDim2.new(0, 800, 0, 520)
     local stateName = "Normal"
     
     if currentSizeState == 1 then
-        targetSize = UDim2.new(0, 480, 0, 350) -- Küçük
+        targetSize = UDim2.new(0, 480, 0, 350)
         stateName = "Küçük"
     elseif currentSizeState == 2 then
-        targetSize = UDim2.new(0, 620, 0, 420) -- Orta
+        targetSize = UDim2.new(0, 620, 0, 420)
         stateName = "Orta"
     end
     
@@ -1601,18 +1557,17 @@ SizeBtn.MouseButton1Click:Connect(function()
 end)
 
 -- ==========================================
--- 5. INTRO GEÇİŞİ (GARANTİLİ THREAD)
+-- INTRO GEÇİŞİ
 -- ==========================================
 local IntroFrame = Instance.new("Frame")
-IntroFrame.Size = UDim2.new(2, 0, 2, 0) -- Tüm mobil/PC ekranlarını kesin kaplar
+IntroFrame.Size = UDim2.new(2, 0, 2, 0)
 IntroFrame.AnchorPoint = Vector2.new(0.5, 0.5)
 IntroFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
 IntroFrame.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-IntroFrame.BackgroundTransparency = 0.3 -- Şeffaf
+IntroFrame.BackgroundTransparency = 0.3
 IntroFrame.ZIndex = 200
 IntroFrame.Parent = ScreenGui
 
--- Arka Plan Wave Gradient (Koyu Mordan Siyaha)
 local IntroGradient = Instance.new("UIGradient")
 IntroGradient.Color = ColorSequence.new{
     ColorSequenceKeypoint.new(0, Color3.fromRGB(15, 5, 20)),
@@ -1634,7 +1589,6 @@ IntroText.TextColor3 = Color3.fromRGB(255, 255, 255)
 IntroText.ZIndex = 201
 IntroText.Parent = IntroFrame
 
--- Yazı Wave Gradient (Koyu Mordan Açık Mora)
 local TextGradient = Instance.new("UIGradient")
 TextGradient.Color = ColorSequence.new{
     ColorSequenceKeypoint.new(0, Color3.fromRGB(70, 0, 130)),
@@ -1644,11 +1598,9 @@ TextGradient.Color = ColorSequence.new{
 TextGradient.Rotation = 0
 TextGradient.Parent = IntroText
 
--- Wave Animasyonları Döngüsü
-local waveTweenInfo = TweenInfo.new(2.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true)
-TweenService:Create(IntroGradient, waveTweenInfo, {Offset = Vector2.new(1, 0)}):Play()
-TweenService:Create(TextGradient, waveTweenInfo, {Offset = Vector2.new(1, 0)}):Play()
-TweenService:Create(IntroGradient, waveTweenInfo, {Offset = Vector2.new(1, 0)}):Play()
+local waveTweenInfoIntro = TweenInfo.new(2.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true)
+TweenService:Create(IntroGradient, waveTweenInfoIntro, {Offset = Vector2.new(1, 0)}):Play()
+TweenService:Create(TextGradient, waveTweenInfoIntro, {Offset = Vector2.new(1, 0)}):Play()
 
 task.spawn(function()
     task.wait(2.5) 
