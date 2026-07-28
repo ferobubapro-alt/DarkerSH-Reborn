@@ -423,6 +423,29 @@ end
 -- ==========================================
 local Toggles = {AutoCoin = false, AutoGun = false, AutoKill = false, AntiAFK = false, SafeMode = false}
 
+-- ==========================================
+-- YARDIMCI BÖLÜM (SECTION) OLUŞTURUCU
+-- ==========================================
+local function CreateSection(parentTab, titleText)
+    local SectionFrame = Instance.new("Frame")
+    SectionFrame.Size = UDim2.new(1, -15, 0, 30)
+    SectionFrame.BackgroundTransparency = 1
+    SectionFrame.ZIndex = 3
+    SectionFrame.Parent = parentTab
+
+    local Title = Instance.new("TextLabel")
+    Title.Size = UDim2.new(1, -10, 1, 0)
+    Title.Position = UDim2.new(0, 15, 0, 10)
+    Title.BackgroundTransparency = 1
+    Title.Text = string.upper(titleText)
+    Title.Font = Enum.Font.GothamBlack
+    Title.TextColor3 = Color3.fromRGB(138, 43, 226) -- Senin temanın ana mor rengi
+    Title.TextSize = 12
+    Title.TextXAlignment = Enum.TextXAlignment.Left
+    Title.ZIndex = 4
+    Title.Parent = SectionFrame
+end
+
 CreateToggle(FarmTab, "Otomatik Altın Topla", "Haritadaki altınları otomatik toplar.", function(state)
     Toggles.AutoCoin = state
     while Toggles.AutoCoin and task.wait(0.2) do
@@ -480,6 +503,180 @@ CreateToggle(FarmTab, "Otomatik Katlet", "Katilken herkesi otomatik öldürür."
                 end
             end
         end)
+    end
+end)
+
+-- ==========================================
+-- PLAYERTAB ÖZELLİKLERİ (Kategorize Edilmiş)
+-- ==========================================
+
+-- 1. KATEGORİ: HAREKET (MOVEMENT)
+CreateSection(PlayerTab, "Hareket (Movement)")
+
+CreateToggle(PlayerTab, "Hızlı Yürüme (Speed)", "Karakterin yürüme hızını artırır.", function(state)
+    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+        LocalPlayer.Character.Humanoid.WalkSpeed = state and 50 or 16
+    end
+end)
+
+local NoclipConnection
+CreateToggle(PlayerTab, "Duvarlardan Geç (Noclip)", "Nesnelerin içinden geçmeni sağlar.", function(state)
+    if state then
+        NoclipConnection = RunService.Stepped:Connect(function()
+            if LocalPlayer.Character then
+                for _, part in pairs(LocalPlayer.Character:GetDescendants()) do
+                    if part:IsA("BasePart") and part.CanCollide then
+                        part.CanCollide = false
+                    end
+                end
+            end
+        end)
+    else
+        if NoclipConnection then NoclipConnection:Disconnect() NoclipConnection = nil end
+    end
+end)
+
+local FlyConnection
+local flying = false
+CreateToggle(PlayerTab, "Uçma (Fly)", "Kameranın baktığı yöne doğru uçarsın.", function(state)
+    flying = state
+    local char = LocalPlayer.Character
+    if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+    local hrp = char.HumanoidRootPart
+
+    if flying then
+        local bv = Instance.new("BodyVelocity")
+        bv.Name = "FlyBV"
+        bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+        bv.Velocity = Vector3.new(0, 0, 0)
+        bv.Parent = hrp
+
+        local bg = Instance.new("BodyGyro")
+        bg.Name = "FlyBG"
+        bg.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
+        bg.CFrame = hrp.CFrame
+        bg.Parent = hrp
+
+        FlyConnection = RunService.RenderStepped:Connect(function()
+            if char and char:FindFirstChild("Humanoid") and hrp:FindFirstChild("FlyBV") then
+                local cam = Workspace.CurrentCamera
+                local moveDir = char.Humanoid.MoveDirection
+                hrp.FlyBV.Velocity = cam.CFrame:VectorToWorldSpace(moveDir) * 50 -- 50 Uçma Hızı
+                hrp.FlyBG.CFrame = CFrame.new(hrp.Position, hrp.Position + cam.CFrame.LookVector)
+            end
+        end)
+    else
+        if FlyConnection then FlyConnection:Disconnect() FlyConnection = nil end
+        if hrp:FindFirstChild("FlyBV") then hrp.FlyBV:Destroy() end
+        if hrp:FindFirstChild("FlyBG") then hrp.FlyBG:Destroy() end
+    end
+end)
+
+-- 2. KATEGORİ: ÖZEL GÜÇLER (UTILITY)
+CreateSection(PlayerTab, "Özel Güçler (Utility)")
+
+local TechPlatform
+local PlatformGUI
+local PlatformY = 0
+local PlatformConnection
+local movingUp = false
+local movingDown = false
+
+CreateToggle(PlayerTab, "Tech Platform", "Ayağının altında kontrol edilebilir teknolojik bir platform belirir.", function(state)
+    if state then
+        local char = LocalPlayer.Character
+        if not char or not char:FindFirstChild("HumanoidRootPart") then
+            Notify("Karakter bulunamadı!")
+            return
+        end
+        
+        PlatformY = char.HumanoidRootPart.Position.Y - 3.5 -- Ayağının tam altı
+
+        -- 1. Platformu Oluştur (Attığın görseldeki teknolojik Neon yapı)
+        TechPlatform = Instance.new("Part")
+        TechPlatform.Name = "TechHoverBoard"
+        TechPlatform.Size = Vector3.new(6, 0.5, 6)
+        TechPlatform.Anchored = true
+        TechPlatform.CanCollide = true
+        TechPlatform.Material = Enum.Material.Neon
+        TechPlatform.Color = Color3.fromRGB(100, 240, 255) -- Görseldeki buz mavisi / cyan rengi
+        TechPlatform.Transparency = 0.3
+        TechPlatform.Parent = Workspace
+        
+        -- 2. Yukarı / Aşağı Kontrolcüsü (GUI)
+        PlatformGUI = Instance.new("ScreenGui")
+        PlatformGUI.Name = "PlatformController"
+        PlatformGUI.ResetOnSpawn = false
+        
+        local success = pcall(function() PlatformGUI.Parent = CoreGui end)
+        if not success then PlatformGUI.Parent = LocalPlayer:WaitForChild("PlayerGui") end
+
+        local ControlFrame = Instance.new("Frame")
+        ControlFrame.Size = UDim2.new(0, 100, 0, 120)
+        ControlFrame.Position = UDim2.new(1, -120, 0.5, -60)
+        ControlFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 18)
+        ControlFrame.BackgroundTransparency = 0.2
+        ControlFrame.ZIndex = 100
+        Instance.new("UICorner", ControlFrame).CornerRadius = UDim.new(0, 10)
+        
+        local UIStroke = Instance.new("UIStroke")
+        UIStroke.Color = Color3.fromRGB(100, 240, 255)
+        UIStroke.Thickness = 1.5
+        UIStroke.Parent = ControlFrame
+        ControlFrame.Parent = PlatformGUI
+
+        -- YUKARI BUTONU
+        local BtnUp = Instance.new("TextButton")
+        BtnUp.Size = UDim2.new(1, -10, 0.5, -10)
+        BtnUp.Position = UDim2.new(0, 5, 0, 5)
+        BtnUp.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+        BtnUp.Text = "▲ YUKARI"
+        BtnUp.TextColor3 = Color3.fromRGB(100, 240, 255)
+        BtnUp.Font = Enum.Font.GothamBold
+        BtnUp.AutoButtonColor = true
+        Instance.new("UICorner", BtnUp).CornerRadius = UDim.new(0, 5)
+        BtnUp.Parent = ControlFrame
+
+        -- AŞAĞI BUTONU
+        local BtnDown = Instance.new("TextButton")
+        BtnDown.Size = UDim2.new(1, -10, 0.5, -10)
+        BtnDown.Position = UDim2.new(0, 5, 0.5, 5)
+        BtnDown.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+        BtnDown.Text = "▼ AŞAĞI"
+        BtnDown.TextColor3 = Color3.fromRGB(100, 240, 255)
+        BtnDown.Font = Enum.Font.GothamBold
+        BtnDown.AutoButtonColor = true
+        Instance.new("UICorner", BtnDown).CornerRadius = UDim.new(0, 5)
+        BtnDown.Parent = ControlFrame
+
+        -- Buton Basılı Tutma Mantığı (Mouse & Touch için)
+        BtnUp.MouseButton1Down:Connect(function() movingUp = true end)
+        BtnUp.MouseButton1Up:Connect(function() movingUp = false end)
+        BtnUp.MouseLeave:Connect(function() movingUp = false end)
+
+        BtnDown.MouseButton1Down:Connect(function() movingDown = true end)
+        BtnDown.MouseButton1Up:Connect(function() movingDown = false end)
+        BtnDown.MouseLeave:Connect(function() movingDown = false end)
+
+        -- 3. Platformu Sürekli Oyuncunun Altında Tutma Döngüsü
+        PlatformConnection = RunService.RenderStepped:Connect(function()
+            if movingUp then PlatformY = PlatformY + 1 end
+            if movingDown then PlatformY = PlatformY - 1 end
+            
+            if TechPlatform and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                local hrp = LocalPlayer.Character.HumanoidRootPart
+                -- Platform X ve Z ekseninde seni takip eder, Y ekseni senin kontrolündedir.
+                TechPlatform.CFrame = CFrame.new(hrp.Position.X, PlatformY, hrp.Position.Z)
+            end
+        end)
+
+    else
+        -- Özellik Kapatıldığında Her Şeyi Temizle
+        if PlatformConnection then PlatformConnection:Disconnect() PlatformConnection = nil end
+        if TechPlatform then TechPlatform:Destroy() TechPlatform = nil end
+        if PlatformGUI then PlatformGUI:Destroy() PlatformGUI = nil end
+        movingUp = false
+        movingDown = false
     end
 end)
 
