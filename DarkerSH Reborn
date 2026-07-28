@@ -5,8 +5,8 @@ local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 local VirtualUser = game:GetService("VirtualUser")
 local UserInputService = game:GetService("UserInputService")
+local Stats = game:GetService("Stats")
 
--- Güvenli LocalPlayer yüklemesi
 local LocalPlayer = Players.LocalPlayer
 while not LocalPlayer do
     Players.PlayerAdded:Wait()
@@ -25,14 +25,9 @@ local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "DarkerSH"
 ScreenGui.ResetOnSpawn = false
 
-local success, err = pcall(function()
-    ScreenGui.Parent = CoreGui
-end)
-if not success then
-    ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
-end
+local success = pcall(function() ScreenGui.Parent = CoreGui end)
+if not success then ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui") end
 
--- Sürükleme Fonksiyonu
 local function MakeDraggable(gui, dragPart)
     dragPart = dragPart or gui
     local dragging, dragInput, dragStart, startPos
@@ -115,65 +110,73 @@ local function Notify(text)
 end
 
 -- ==========================================
--- 1. INTRO (SAYDAM VE TAM EKRAN AÇILIŞ)
+-- KEY & YETKİLENDİRME SİSTEMİ
 -- ==========================================
-local IntroFrame = Instance.new("Frame")
-IntroFrame.Size = UDim2.new(1, 0, 1, 0)
-IntroFrame.Position = UDim2.new(0, 0, 0, 0)
-IntroFrame.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-IntroFrame.BackgroundTransparency = 0.25 -- Arka planı daha saydam yaptık
-IntroFrame.ZIndex = 200
-IntroFrame.Parent = ScreenGui
-
-local IntroGradient = Instance.new("UIGradient")
-IntroGradient.Color = ColorSequence.new{
-    ColorSequenceKeypoint.new(0, Color3.fromRGB(48, 0, 74)),
-    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(15, 15, 15)),
-    ColorSequenceKeypoint.new(1, Color3.fromRGB(48, 0, 74))
-}
-IntroGradient.Rotation = 45
-IntroGradient.Parent = IntroFrame
-
-local IntroText = Instance.new("TextLabel")
-IntroText.Size = UDim2.new(0.8, 0, 0.4, 0)
-IntroText.Position = UDim2.new(0.1, 0, 0.3, 0)
-IntroText.BackgroundTransparency = 1
-IntroText.Text = "DarkerSH Reborn"
-IntroText.Font = Enum.Font.GothamBold
-IntroText.TextScaled = true
-IntroText.TextColor3 = Color3.fromRGB(255, 255, 255)
-IntroText.ZIndex = 201
-IntroText.Parent = IntroFrame
-
-local TextGradient = Instance.new("UIGradient")
-TextGradient.Color = ColorSequence.new{
-    ColorSequenceKeypoint.new(0, Color3.fromRGB(138, 43, 226)),
-    ColorSequenceKeypoint.new(1, Color3.fromRGB(50, 50, 50))
-}
-TextGradient.Parent = IntroText
-
-local waveTweenInfo = TweenInfo.new(2, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut, -1, true)
-TweenService:Create(IntroGradient, waveTweenInfo, {Offset = Vector2.new(1, 0)}):Play()
-TweenService:Create(TextGradient, waveTweenInfo, {Offset = Vector2.new(1, 0)}):Play()
+-- -1 = Bekleniyor, 0 = Free, 1 = Premium-Lite, 2 = Premium
+local UserTierValue = -1 
+local TierNames = {[-1] = "Giriş Bekleniyor", [0] = "Free", [1] = "Premium-Lite", [2] = "Premium"}
 
 -- ==========================================
--- 2. ANA ARAYÜZ
+-- ANA ARAYÜZ (Genişletildi ve Dalga Efekti Eklendi)
 -- ==========================================
 local MainFrame = Instance.new("Frame")
 MainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
-MainFrame.Position = UDim2.new(0.5, 0, 0.5, 45) -- Y eksenine +45 eklendi, arayüz aşağı çekildi
-MainFrame.Size = UDim2.new(0, 620, 0, 520)
-MainFrame.BackgroundColor3 = Color3.fromRGB(17, 17, 19)
+MainFrame.Position = UDim2.new(0.5, 0, 0.5, 45)
+MainFrame.Size = UDim2.new(0, 800, 0, 520) -- YANA DOĞRU GENİŞLETİLDİ
+MainFrame.BackgroundColor3 = Color3.fromRGB(255, 255, 255) -- Gradient için beyaz
 MainFrame.Visible = false
 MainFrame.Active = true
 MainFrame.ZIndex = 1
 MainFrame.Parent = ScreenGui
 Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 12)
 
-local SizeConstraint = Instance.new("UISizeConstraint")
-SizeConstraint.MaxSize = Vector2.new(750, 620)
-SizeConstraint.MinSize = Vector2.new(480, 420)
-SizeConstraint.Parent = MainFrame
+local MainGradient = Instance.new("UIGradient")
+MainGradient.Color = ColorSequence.new{
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(15, 10, 20)),
+    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(17, 17, 19)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(25, 10, 35))
+}
+MainGradient.Rotation = 45
+MainGradient.Parent = MainFrame
+
+-- Arka Plan Dalga (Wave) Animasyonu
+local waveTweenInfo = TweenInfo.new(4, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true)
+TweenService:Create(MainGradient, waveTweenInfo, {Offset = Vector2.new(0.5, 0)}):Play()
+
+-- Üst Bar
+local TopBar = Instance.new("Frame")
+TopBar.Size = UDim2.new(1, -180, 0, 40)
+TopBar.Position = UDim2.new(0, 180, 0, 0)
+TopBar.BackgroundTransparency = 1
+TopBar.ZIndex = 5
+TopBar.Parent = MainFrame
+MakeDraggable(MainFrame, TopBar)
+
+local SafeText = Instance.new("TextLabel")
+SafeText.Size = UDim2.new(0, 200, 1, 0)
+SafeText.Position = UDim2.new(1, -280, 0, 0)
+SafeText.BackgroundTransparency = 1
+SafeText.Text = "Safe, Fast, Undetected."
+SafeText.Font = Enum.Font.GothamBold
+SafeText.TextColor3 = Color3.fromRGB(100, 255, 100)
+SafeText.TextSize = 12
+SafeText.TextXAlignment = Enum.TextXAlignment.Right
+SafeText.ZIndex = 6
+SafeText.Parent = TopBar
+
+local CloseBtn = Instance.new("TextButton")
+CloseBtn.Size = UDim2.new(0, 30, 0, 30)
+CloseBtn.Position = UDim2.new(1, -40, 0, 5)
+CloseBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+CloseBtn.Text = "X"
+CloseBtn.Font = Enum.Font.GothamBold
+CloseBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+CloseBtn.TextSize = 14
+CloseBtn.ZIndex = 6
+Instance.new("UICorner", CloseBtn).CornerRadius = UDim.new(0, 6)
+CloseBtn.Parent = TopBar
+
+CloseBtn.MouseButton1Click:Connect(function() ScreenGui:Destroy() end)
 
 -- Yan Menü (Sidebar)
 local Sidebar = Instance.new("Frame")
@@ -184,7 +187,6 @@ Sidebar.ZIndex = 2
 Sidebar.Parent = MainFrame
 Instance.new("UICorner", Sidebar).CornerRadius = UDim.new(0, 12)
 
--- Logo
 local LogoImage = Instance.new("ImageLabel")
 LogoImage.Size = UDim2.new(0, 90, 0, 90)
 LogoImage.Position = UDim2.new(0.5, -45, 0, 15)
@@ -206,71 +208,63 @@ Title.TextXAlignment = Enum.TextXAlignment.Center
 Title.ZIndex = 3
 Title.Parent = Sidebar
 
--- Üst Bar
-local TopBar = Instance.new("Frame")
-TopBar.Size = UDim2.new(1, -180, 0, 40)
-TopBar.Position = UDim2.new(0, 180, 0, 0)
-TopBar.BackgroundTransparency = 1
-TopBar.ZIndex = 5
-TopBar.Parent = MainFrame
-MakeDraggable(MainFrame, TopBar)
+-- Profil Kısmı (Sidebar En Alt)
+local ProfileFrame = Instance.new("Frame")
+ProfileFrame.Size = UDim2.new(1, 0, 0, 65)
+ProfileFrame.Position = UDim2.new(0, 0, 1, -65)
+ProfileFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 18)
+ProfileFrame.ZIndex = 3
+Instance.new("UICorner", ProfileFrame).CornerRadius = UDim.new(0, 12)
+ProfileFrame.Parent = Sidebar
 
-local CloseBtn = Instance.new("TextButton")
-CloseBtn.Size = UDim2.new(0, 30, 0, 30)
-CloseBtn.Position = UDim2.new(1, -40, 0, 5)
-CloseBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-CloseBtn.Text = "X"
-CloseBtn.Font = Enum.Font.GothamBold
-CloseBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
-CloseBtn.TextSize = 14
-CloseBtn.ZIndex = 6
-Instance.new("UICorner", CloseBtn).CornerRadius = UDim.new(0, 6)
-CloseBtn.Parent = TopBar
+local Avatar = Instance.new("ImageLabel")
+Avatar.Size = UDim2.new(0, 40, 0, 40)
+Avatar.Position = UDim2.new(0, 10, 0, 12)
+Avatar.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+Avatar.Image = "rbxthumb://type=AvatarHeadShot&id="..LocalPlayer.UserId.."&w=48&h=48"
+Avatar.ZIndex = 4
+Instance.new("UICorner", Avatar).CornerRadius = UDim.new(1, 0)
+Avatar.Parent = ProfileFrame
 
-local MinimizeBtn = Instance.new("TextButton")
-MinimizeBtn.Size = UDim2.new(0, 30, 0, 30)
-MinimizeBtn.Position = UDim2.new(1, -75, 0, 5)
-MinimizeBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-MinimizeBtn.Text = "-"
-MinimizeBtn.Font = Enum.Font.GothamBold
-MinimizeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-MinimizeBtn.TextSize = 18
-MinimizeBtn.ZIndex = 6
-Instance.new("UICorner", MinimizeBtn).CornerRadius = UDim.new(0, 6)
-MinimizeBtn.Parent = TopBar
+local UserNameLbl = Instance.new("TextLabel")
+UserNameLbl.Size = UDim2.new(1, -60, 0, 20)
+UserNameLbl.Position = UDim2.new(0, 60, 0, 15)
+UserNameLbl.BackgroundTransparency = 1
+UserNameLbl.Text = LocalPlayer.Name
+UserNameLbl.Font = Enum.Font.GothamBold
+UserNameLbl.TextColor3 = Color3.fromRGB(255, 255, 255)
+UserNameLbl.TextSize = 12
+UserNameLbl.TextXAlignment = Enum.TextXAlignment.Left
+UserNameLbl.ZIndex = 4
+UserNameLbl.Parent = ProfileFrame
 
-local FloatingIcon = Instance.new("ImageButton")
-FloatingIcon.Name = "FloatingIcon"
-FloatingIcon.Size = UDim2.new(0, 50, 0, 50)
-FloatingIcon.Position = UDim2.new(0, 15, 0.5, -25)
-FloatingIcon.BackgroundColor3 = Color3.fromRGB(17, 17, 19)
-FloatingIcon.Image = "rbxassetid://126964821713679"
-FloatingIcon.Visible = false
-FloatingIcon.ZIndex = 500
-FloatingIcon.Parent = ScreenGui
-Instance.new("UICorner", FloatingIcon).CornerRadius = UDim.new(1, 0)
-MakeDraggable(FloatingIcon)
+local TierBadge = Instance.new("Frame")
+TierBadge.Size = UDim2.new(0, 90, 0, 16)
+TierBadge.Position = UDim2.new(0, 60, 0, 35)
+TierBadge.BackgroundColor3 = Color3.fromRGB(138, 43, 226)
+TierBadge.ZIndex = 4
+Instance.new("UICorner", TierBadge).CornerRadius = UDim.new(0, 4)
+TierBadge.Parent = ProfileFrame
 
-CloseBtn.MouseButton1Click:Connect(function() ScreenGui:Destroy() end)
-MinimizeBtn.MouseButton1Click:Connect(function()
-    MainFrame.Visible = false
-    FloatingIcon.Visible = true
-    Notify("Arayüz simge durumuna getirildi.")
-end)
-FloatingIcon.MouseButton1Click:Connect(function()
-    FloatingIcon.Visible = false
-    MainFrame.Visible = true
-end)
+local TierText = Instance.new("TextLabel")
+TierText.Size = UDim2.new(1, 0, 1, 0)
+TierText.BackgroundTransparency = 1
+TierText.Text = TierNames[UserTierValue]
+TierText.Font = Enum.Font.GothamBold
+TierText.TextColor3 = Color3.fromRGB(255, 255, 255)
+TierText.TextSize = 10
+TierText.ZIndex = 5
+TierText.Parent = TierBadge
 
 -- ==========================================
 -- 3. SEKMELER (TABS) SİSTEMİ
 -- ==========================================
 local TabContainer = Instance.new("ScrollingFrame")
-TabContainer.Size = UDim2.new(1, -10, 1, -140)
+TabContainer.Size = UDim2.new(1, -10, 1, -210) -- Profil için yer bırakıldı
 TabContainer.Position = UDim2.new(0, 5, 0, 135)
 TabContainer.BackgroundTransparency = 1
 TabContainer.BorderSizePixel = 0
-TabContainer.ScrollBarThickness = 2
+TabContainer.ScrollBarThickness = 0
 TabContainer.ZIndex = 3
 TabContainer.Parent = Sidebar
 
@@ -291,7 +285,7 @@ ContentContainer.ZIndex = 2
 ContentContainer.Parent = MainFrame
 
 local Tabs = {}
-local function CreateTab(name, isDefault)
+local function CreateTab(name, isDefault, useGrid)
     local TabBtn = Instance.new("TextButton")
     TabBtn.Size = UDim2.new(1, -5, 0, 35)
     TabBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
@@ -312,14 +306,18 @@ local function CreateTab(name, isDefault)
     TabPage.ZIndex = 2
     TabPage.Parent = ContentContainer
 
-    local PageLayout = Instance.new("UIListLayout")
-    PageLayout.SortOrder = Enum.SortOrder.LayoutOrder
-    PageLayout.Padding = UDim.new(0, 10)
-    PageLayout.Parent = TabPage
-
-    PageLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-        TabPage.CanvasSize = UDim2.new(0, 0, 0, PageLayout.AbsoluteContentSize.Y + 20)
-    end)
+    if useGrid then
+        -- KARTLARIN YAN YANA DİZİLMESİ İÇİN UIGRIDLAYOUT
+        local PageLayout = Instance.new("UIGridLayout")
+        PageLayout.CellSize = UDim2.new(0, 290, 0, 230)
+        PageLayout.CellPadding = UDim2.new(0, 10, 0, 10)
+        PageLayout.SortOrder = Enum.SortOrder.LayoutOrder
+        PageLayout.Parent = TabPage
+        
+        PageLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+            TabPage.CanvasSize = UDim2.new(0, 0, 0, PageLayout.AbsoluteContentSize.Y + 20)
+        end)
+    end
 
     Tabs[name] = {Button = TabBtn, Page = TabPage}
 
@@ -345,88 +343,181 @@ local function CreateTab(name, isDefault)
     return TabPage
 end
 
-local FarmTab = CreateTab("Farm", true)
-local VisualTab = CreateTab("Görsel", false)
-local InventoryTab = CreateTab("Envanter", false)
-local SettingsTab = CreateTab("Ayarlar", false)
-local PlayerTab = CreateTab("Oyuncu", false)
+-- ==========================================
+-- SEKME TANIMLAMALARI
+-- ==========================================
+local HomeTab = CreateTab("Ana Menü", true, false)
+local FarmTab = CreateTab("Farm", false, true)
+local PlayerTab = CreateTab("Oyuncu", false, true)
+local CombatTab = CreateTab("Savaş", false, true)
+local VisualTab = CreateTab("Görsel", false, true)
 
--- Toggle Oluşturucu Fonksiyon
-local function CreateToggle(parentTab, name, description, callback)
-    local ToggleFrame = Instance.new("Frame")
-    ToggleFrame.Size = UDim2.new(1, -15, 0, 60)
-    ToggleFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 28)
-    ToggleFrame.ZIndex = 3
-    ToggleFrame.Parent = parentTab
-    Instance.new("UICorner", ToggleFrame).CornerRadius = UDim.new(0, 8)
+-- ==========================================
+-- ANA MENÜ (HOME) TASARIMI VE KEY SİSTEMİ
+-- ==========================================
+local WelcomeTitle = Instance.new("TextLabel")
+WelcomeTitle.Size = UDim2.new(1, 0, 0, 40)
+WelcomeTitle.Position = UDim2.new(0, 0, 0, 10)
+WelcomeTitle.BackgroundTransparency = 1
+WelcomeTitle.Text = "Dominate MM2 With Our Soft-Ware"
+WelcomeTitle.Font = Enum.Font.GothamBlack
+WelcomeTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+WelcomeTitle.TextSize = 22
+WelcomeTitle.ZIndex = 3
+WelcomeTitle.Parent = HomeTab
 
-    local TitleLbl = Instance.new("TextLabel")
-    TitleLbl.Size = UDim2.new(1, -70, 0, 20)
-    TitleLbl.Position = UDim2.new(0, 15, 0, 10)
-    TitleLbl.BackgroundTransparency = 1
-    TitleLbl.Text = name
-    TitleLbl.Font = Enum.Font.GothamBold
-    TitleLbl.TextColor3 = Color3.fromRGB(255, 255, 255)
-    TitleLbl.TextSize = 14
-    TitleLbl.TextXAlignment = Enum.TextXAlignment.Left
-    TitleLbl.ZIndex = 4
-    TitleLbl.Parent = ToggleFrame
+-- İstatistik Kartları Çerçevesi
+local StatsFrame = Instance.new("Frame")
+StatsFrame.Size = UDim2.new(1, -20, 0, 200)
+StatsFrame.Position = UDim2.new(0, 10, 0, 70)
+StatsFrame.BackgroundTransparency = 1
+StatsFrame.ZIndex = 3
+StatsFrame.Parent = HomeTab
 
-    local DescLbl = Instance.new("TextLabel")
-    DescLbl.Size = UDim2.new(1, -70, 0, 20)
-    DescLbl.Position = UDim2.new(0, 15, 0, 30)
-    DescLbl.BackgroundTransparency = 1
-    DescLbl.Text = description
-    DescLbl.Font = Enum.Font.Gotham
-    DescLbl.TextColor3 = Color3.fromRGB(150, 150, 150)
-    DescLbl.TextSize = 11
-    DescLbl.TextXAlignment = Enum.TextXAlignment.Left
-    DescLbl.ZIndex = 4
-    DescLbl.Parent = ToggleFrame
+local StatsGrid = Instance.new("UIGridLayout")
+StatsGrid.CellSize = UDim2.new(0, 185, 0, 80)
+StatsGrid.CellPadding = UDim2.new(0, 10, 0, 10)
+StatsGrid.Parent = StatsFrame
 
-    local ToggleBtn = Instance.new("TextButton")
-    ToggleBtn.Size = UDim2.new(0, 40, 0, 20)
-    ToggleBtn.Position = UDim2.new(1, -50, 0.5, -10)
-    ToggleBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-    ToggleBtn.Text = ""
-    ToggleBtn.ZIndex = 4
-    Instance.new("UICorner", ToggleBtn).CornerRadius = UDim.new(1, 0)
-    ToggleBtn.Parent = ToggleFrame
+local function CreateStatCard(title, initialValue)
+    local Card = Instance.new("Frame")
+    Card.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+    Instance.new("UICorner", Card).CornerRadius = UDim.new(0, 8)
+    Card.ZIndex = 4
+    Card.Parent = StatsFrame
 
-    local Circle = Instance.new("Frame")
-    Circle.Size = UDim2.new(0, 16, 0, 16)
-    Circle.Position = UDim2.new(0, 2, 0, 2)
-    Circle.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-    Circle.ZIndex = 5
-    Instance.new("UICorner", Circle).CornerRadius = UDim.new(1, 0)
-    Circle.Parent = ToggleBtn
+    local Stroke = Instance.new("UIStroke")
+    Stroke.Color = Color3.fromRGB(138, 43, 226)
+    Stroke.Parent = Card
 
-    local toggled = false
-    ToggleBtn.MouseButton1Click:Connect(function()
-        toggled = not toggled
-        local stateText = toggled and "Aktif Edildi" or "Kapatıldı"
-        Notify(name .. " " .. stateText)
+    local T = Instance.new("TextLabel")
+    T.Size = UDim2.new(1, 0, 0, 30)
+    T.Position = UDim2.new(0, 0, 0, 10)
+    T.BackgroundTransparency = 1
+    T.Text = title
+    T.Font = Enum.Font.GothamBold
+    T.TextColor3 = Color3.fromRGB(180, 180, 180)
+    T.TextSize = 12
+    T.ZIndex = 5
+    T.Parent = Card
 
-        if toggled then
-            TweenService:Create(ToggleBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(138, 43, 226)}):Play()
-            TweenService:Create(Circle, TweenInfo.new(0.2), {Position = UDim2.new(1, -18, 0, 2)}):Play()
-        else
-            TweenService:Create(ToggleBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(40, 40, 40)}):Play()
-            TweenService:Create(Circle, TweenInfo.new(0.2), {Position = UDim2.new(0, 2, 0, 2)}):Play()
-        end
-        pcall(function() callback(toggled) end)
-    end)
+    local V = Instance.new("TextLabel")
+    V.Size = UDim2.new(1, 0, 0, 30)
+    V.Position = UDim2.new(0, 0, 0, 35)
+    V.BackgroundTransparency = 1
+    V.Text = initialValue
+    V.Font = Enum.Font.GothamBlack
+    V.TextColor3 = Color3.fromRGB(255, 255, 255)
+    V.TextSize = 16
+    V.ZIndex = 5
+    V.Parent = Card
+    return V
 end
--- ==========================================
--- GELİŞMİŞ BÜYÜK KART VE WIDGET SİSTEMİ
--- ==========================================
 
-local FloatingWidgets = {} -- Ekrana sabitlenen widget'ları tuttuğumuz tablo
+local FpsVal = CreateStatCard("FPS", "60")
+local PingVal = CreateStatCard("GECİKME (PING)", "0 ms")
+local RegionVal = CreateStatCard("SUNUCU LOKASYON", "Global")
+local TimeVal = CreateStatCard("OYUN SÜRESİ", "00:00")
+local FriendVal = CreateStatCard("ARKADAŞ DURUMU", "Yok")
 
--- 1. BÜYÜK KATEGORİ KARTI OLUŞTURUCU
+local StartTime = os.time()
+RunService.RenderStepped:Connect(function()
+    if HomeTab.Visible then
+        FpsVal.Text = tostring(math.floor(Workspace:GetRealPhysicsFPS())) .. " FPS"
+        
+        local ping = Stats.Network.ServerStatsItem["Data Ping"]:GetValue()
+        PingVal.Text = tostring(math.floor(ping)) .. " ms"
+        
+        local passed = os.time() - StartTime
+        local mins = math.floor(passed / 60)
+        local secs = passed % 60
+        TimeVal.Text = string.format("%02d:%02d", mins, secs)
+        
+        local hasFriend = false
+        for _, p in pairs(Players:GetPlayers()) do
+            if p ~= LocalPlayer and LocalPlayer:IsFriendsWith(p.UserId) then
+                hasFriend = true; break
+            end
+        end
+        FriendVal.Text = hasFriend and "Sunucuda Arkadaş Var" or "Yok"
+    end
+end)
+
+-- Key Entry Sistemi
+local KeyFrame = Instance.new("Frame")
+KeyFrame.Size = UDim2.new(1, -40, 0, 120)
+KeyFrame.Position = UDim2.new(0, 20, 1, -140)
+KeyFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+KeyFrame.ZIndex = 3
+Instance.new("UICorner", KeyFrame).CornerRadius = UDim.new(0, 10)
+KeyFrame.Parent = HomeTab
+Instance.new("UIStroke", KeyFrame).Color = Color3.fromRGB(50, 50, 60)
+
+local KeyTitle = Instance.new("TextLabel")
+KeyTitle.Size = UDim2.new(1, 0, 0, 30)
+KeyTitle.Position = UDim2.new(0, 0, 0, 10)
+KeyTitle.BackgroundTransparency = 1
+KeyTitle.Text = "ERİŞİM ANAHTARI GİRİN (KEY)"
+KeyTitle.Font = Enum.Font.GothamBold
+KeyTitle.TextColor3 = Color3.fromRGB(200, 200, 200)
+KeyTitle.TextSize = 12
+KeyTitle.ZIndex = 4
+KeyTitle.Parent = KeyFrame
+
+local KeyInput = Instance.new("TextBox")
+KeyInput.Size = UDim2.new(0.6, 0, 0, 40)
+KeyInput.Position = UDim2.new(0.05, 0, 0, 50)
+KeyInput.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+KeyInput.PlaceholderText = "Anahtarınızı buraya yapıştırın..."
+KeyInput.Text = ""
+KeyInput.Font = Enum.Font.Gotham
+KeyInput.TextColor3 = Color3.fromRGB(255, 255, 255)
+KeyInput.TextSize = 14
+KeyInput.ZIndex = 4
+Instance.new("UICorner", KeyInput).CornerRadius = UDim.new(0, 6)
+KeyInput.Parent = KeyFrame
+
+local VerifyBtn = Instance.new("TextButton")
+VerifyBtn.Size = UDim2.new(0.25, 0, 0, 40)
+VerifyBtn.Position = UDim2.new(0.7, 0, 0, 50)
+VerifyBtn.BackgroundColor3 = Color3.fromRGB(138, 43, 226)
+VerifyBtn.Text = "DOĞRULA"
+VerifyBtn.Font = Enum.Font.GothamBold
+VerifyBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+VerifyBtn.TextSize = 14
+VerifyBtn.ZIndex = 4
+Instance.new("UICorner", VerifyBtn).CornerRadius = UDim.new(0, 6)
+VerifyBtn.Parent = KeyFrame
+
+VerifyBtn.MouseButton1Click:Connect(function()
+    local k = KeyInput.Text
+    if k == "Free_4202" then
+        UserTierValue = 0
+        TierText.Text = "Free"
+        TierBadge.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+        Notify("Ücretsiz Sürüm Doğrulandı!")
+    elseif k:match("^%a%a%a%a%a%a%d%d%d$") then
+        UserTierValue = 1
+        TierText.Text = "Premium-Lite"
+        TierBadge.BackgroundColor3 = Color3.fromRGB(50, 150, 255)
+        Notify("Premium-Lite Doğrulandı!")
+    elseif k:match("^%a%a%a%a%a%a%a%a%a%a%a%a%d%d%d%d$") then
+        UserTierValue = 2
+        TierText.Text = "Premium"
+        TierBadge.BackgroundColor3 = Color3.fromRGB(138, 43, 226)
+        Notify("Premium Doğrulandı! Hoş Geldiniz.")
+    else
+        Notify("Geçersiz Anahtar!")
+    end
+end)
+
+-- ==========================================
+-- BÜYÜK KART VE TIKLAMA WIDGET SİSTEMİ
+-- ==========================================
+local FloatingWidgets = {}
+
 local function CreateCategoryCard(parentTab, titleText)
     local CardFrame = Instance.new("Frame")
-    CardFrame.Size = UDim2.new(1, -15, 0, 40) -- Yüksekliği UIListLayout ile otomatik artacak
     CardFrame.BackgroundColor3 = Color3.fromRGB(22, 22, 26)
     CardFrame.ZIndex = 3
     CardFrame.Parent = parentTab
@@ -448,10 +539,12 @@ local function CreateCategoryCard(parentTab, titleText)
     TitleLbl.ZIndex = 4
     TitleLbl.Parent = CardFrame
 
-    local ItemContainer = Instance.new("Frame")
+    local ItemContainer = Instance.new("ScrollingFrame")
     ItemContainer.Size = UDim2.new(1, -20, 1, -40)
     ItemContainer.Position = UDim2.new(0, 10, 0, 35)
     ItemContainer.BackgroundTransparency = 1
+    ItemContainer.BorderSizePixel = 0
+    ItemContainer.ScrollBarThickness = 2
     ItemContainer.ZIndex = 4
     ItemContainer.Parent = CardFrame
 
@@ -460,23 +553,15 @@ local function CreateCategoryCard(parentTab, titleText)
     ListLayout.Padding = UDim.new(0, 8)
     ListLayout.Parent = ItemContainer
 
-    -- İçine özellik eklendikçe Kartın boyunu otomatik büyütür
-    local function UpdateCardSize()
-        task.delay(0.05, function()
-            CardFrame.Size = UDim2.new(1, -15, 0, ListLayout.AbsoluteContentSize.Y + 45)
-        end)
-    end
-    ListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(UpdateCardSize)
-    ItemContainer.ChildAdded:Connect(UpdateCardSize)
+    ListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+        ItemContainer.CanvasSize = UDim2.new(0, 0, 0, ListLayout.AbsoluteContentSize.Y + 10)
+    end)
 
     return ItemContainer
 end
 
--- ==========================================
--- QUICK WIDGET (HIZLI BUTON) SİSTEMİ
--- ==========================================
 local function CreateQuickWidget(name, toggleCallback)
-    if FloatingWidgets[name] then return end -- Zaten varsa oluşturma
+    if FloatingWidgets[name] then return end
 
     local Widget = Instance.new("Frame")
     Widget.Size = UDim2.new(0, 120, 0, 40)
@@ -508,7 +593,6 @@ local function CreateQuickWidget(name, toggleCallback)
     local isLocked = false
     local isBig = false
 
-    -- Widget Basılı Tutma Mantığı (Ayar Menüsü)
     local wIsPressed = false
     local wFired = false
     Btn.MouseButton1Down:Connect(function()
@@ -516,22 +600,19 @@ local function CreateQuickWidget(name, toggleCallback)
         task.delay(0.5, function()
             if wIsPressed and not wFired then
                 wFired = true
-                -- Basılı tutunca özellikler değişir
                 isLocked = not isLocked
                 isBig = not isBig
                 Widget.Active = not isLocked
                 Widget.Size = isBig and UDim2.new(0, 150, 0, 50) or UDim2.new(0, 120, 0, 40)
                 UIStroke.Color = isLocked and Color3.fromRGB(200, 50, 50) or Color3.fromRGB(138, 43, 226)
-                Notify(name .. (isLocked and " Widget Kitlendi & Büyüdü" or " Widget Açıldı"))
+                Notify(name .. (isLocked and " Kitlendi & Büyüdü" or " Açıldı"))
             end
         end)
     end)
 
     Btn.MouseButton1Up:Connect(function()
         wIsPressed = false
-        if not wFired then
-            toggleCallback() -- Tıklanınca asıl özelliği çalıştır
-        end
+        if not wFired then toggleCallback() end
     end)
     Btn.MouseLeave:Connect(function() wIsPressed = false end)
 end
@@ -544,10 +625,10 @@ local function RemoveQuickWidget(name)
     end
 end
 
--- 2. KART İÇİ YATAY ÖZELLİK (TOGGLE) OLUŞTURUCU VE LONG PRESS
-local function CreateToggle(parentContainer, name, description, callback)
+-- Toggles (Tier sistemi ile)
+local function CreateToggle(parentContainer, name, description, minTier, callback)
     local RowFrame = Instance.new("Frame")
-    RowFrame.Size = UDim2.new(1, 0, 0, 45)
+    RowFrame.Size = UDim2.new(1, -5, 0, 45)
     RowFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
     RowFrame.ZIndex = 4
     RowFrame.Parent = parentContainer
@@ -560,40 +641,52 @@ local function CreateToggle(parentContainer, name, description, callback)
     ClickArea.ZIndex = 10 
     ClickArea.Parent = RowFrame
 
+    local TierLbl = Instance.new("TextLabel")
+    TierLbl.Size = UDim2.new(0, 30, 0, 15)
+    TierLbl.Position = UDim2.new(0, 5, 0, 5)
+    TierLbl.BackgroundColor3 = (minTier == 2 and Color3.fromRGB(138, 43, 226)) or (minTier == 1 and Color3.fromRGB(50, 150, 255)) or Color3.fromRGB(100, 100, 100)
+    TierLbl.Text = (minTier == 2 and "PRO") or (minTier == 1 and "LITE") or "FREE"
+    TierLbl.Font = Enum.Font.GothamBold
+    TierLbl.TextColor3 = Color3.fromRGB(255, 255, 255)
+    TierLbl.TextSize = 8
+    TierLbl.ZIndex = 5
+    Instance.new("UICorner", TierLbl).CornerRadius = UDim.new(0, 4)
+    TierLbl.Parent = RowFrame
+
     local TitleLbl = Instance.new("TextLabel")
-    TitleLbl.Size = UDim2.new(1, -70, 0, 20)
-    TitleLbl.Position = UDim2.new(0, 15, 0, 5)
+    TitleLbl.Size = UDim2.new(1, -85, 0, 20)
+    TitleLbl.Position = UDim2.new(0, 40, 0, 3)
     TitleLbl.BackgroundTransparency = 1
     TitleLbl.Text = name
     TitleLbl.Font = Enum.Font.GothamBold
     TitleLbl.TextColor3 = Color3.fromRGB(255, 255, 255)
-    TitleLbl.TextSize = 13
+    TitleLbl.TextSize = 12
     TitleLbl.TextXAlignment = Enum.TextXAlignment.Left
     TitleLbl.ZIndex = 5
     TitleLbl.Parent = RowFrame
 
     local DescLbl = Instance.new("TextLabel")
-    DescLbl.Size = UDim2.new(1, -70, 0, 20)
-    DescLbl.Position = UDim2.new(0, 15, 0, 22)
+    DescLbl.Size = UDim2.new(1, -50, 0, 20)
+    DescLbl.Position = UDim2.new(0, 10, 0, 22)
     DescLbl.BackgroundTransparency = 1
     DescLbl.Text = description
     DescLbl.Font = Enum.Font.Gotham
     DescLbl.TextColor3 = Color3.fromRGB(150, 150, 150)
-    DescLbl.TextSize = 11
+    DescLbl.TextSize = 10
     DescLbl.TextXAlignment = Enum.TextXAlignment.Left
     DescLbl.ZIndex = 5
     DescLbl.Parent = RowFrame
 
     local ToggleBtn = Instance.new("Frame")
-    ToggleBtn.Size = UDim2.new(0, 40, 0, 20)
-    ToggleBtn.Position = UDim2.new(1, -55, 0.5, -10)
+    ToggleBtn.Size = UDim2.new(0, 36, 0, 18)
+    ToggleBtn.Position = UDim2.new(1, -45, 0.5, -9)
     ToggleBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 50)
     ToggleBtn.ZIndex = 5
     Instance.new("UICorner", ToggleBtn).CornerRadius = UDim.new(1, 0)
     ToggleBtn.Parent = RowFrame
 
     local Circle = Instance.new("Frame")
-    Circle.Size = UDim2.new(0, 16, 0, 16)
+    Circle.Size = UDim2.new(0, 14, 0, 14)
     Circle.Position = UDim2.new(0, 2, 0, 2)
     Circle.BackgroundColor3 = Color3.fromRGB(200, 200, 200)
     Circle.ZIndex = 6
@@ -603,10 +696,19 @@ local function CreateToggle(parentContainer, name, description, callback)
     local toggled = false
 
     local function FireToggle()
+        if UserTierValue < 0 then
+            Notify("Önce Ana Menüden Key giriniz!")
+            return
+        end
+        if UserTierValue < minTier then
+            Notify("Bu özellik " .. (minTier == 1 and "Premium-Lite" or "Premium") .. " gerektirir!")
+            return
+        end
+
         toggled = not toggled
         if toggled then
             TweenService:Create(ToggleBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(138, 43, 226)}):Play()
-            TweenService:Create(Circle, TweenInfo.new(0.2), {Position = UDim2.new(1, -18, 0, 2), BackgroundColor3 = Color3.fromRGB(255,255,255)}):Play()
+            TweenService:Create(Circle, TweenInfo.new(0.2), {Position = UDim2.new(1, -16, 0, 2), BackgroundColor3 = Color3.fromRGB(255,255,255)}):Play()
         else
             TweenService:Create(ToggleBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(45, 45, 50)}):Play()
             TweenService:Create(Circle, TweenInfo.new(0.2), {Position = UDim2.new(0, 2, 0, 2), BackgroundColor3 = Color3.fromRGB(200,200,200)}):Play()
@@ -615,13 +717,11 @@ local function CreateToggle(parentContainer, name, description, callback)
         pcall(function() callback(toggled) end)
     end
 
-    -- Tıklama ve Basılı Tutma Mantığı
     local isPressed = false
     local longPressFired = false
     
     ClickArea.MouseButton1Down:Connect(function()
-        isPressed = true
-        longPressFired = false
+        isPressed = true; longPressFired = false
         task.delay(0.5, function()
             if isPressed and not longPressFired then
                 longPressFired = true
@@ -629,7 +729,7 @@ local function CreateToggle(parentContainer, name, description, callback)
                     RemoveQuickWidget(name)
                 else
                     CreateQuickWidget(name, FireToggle)
-                    Notify(name .. " Hızlı Buton Olarak Eklendi!")
+                    Notify(name .. " Hızlı Buton Eklendi!")
                 end
             end
         end)
@@ -637,29 +737,21 @@ local function CreateToggle(parentContainer, name, description, callback)
 
     ClickArea.MouseButton1Up:Connect(function()
         isPressed = false
-        if not longPressFired then
-            FireToggle()
-        end
+        if not longPressFired then FireToggle() end
     end)
 
-    ClickArea.MouseLeave:Connect(function()
-        isPressed = false
-    end)
+    ClickArea.MouseLeave:Connect(function() isPressed = false end)
 end
 
--- YENİ SEKME OLUŞTURMA (TABS İÇİNE COMBAT EKLENDİ)
-local CombatTab = CreateTab("Savaş", false)
--- Mevcut olanları Tabs tablosuna zaten eklemiştik yukarıda (FarmTab vs.)
-
 -- ==========================================
--- 4. ÖZELLİKLER VE MM2 MANTIKLARI
+-- ÖZELLİKLER VE MM2 MANTIKLARI
 -- ==========================================
 local Toggles = {AutoCoin = false, AutoGun = false, AutoKill = false, AntiAFK = false, SafeMode = false, PlayerESP = false, MurdererESP = false, SheriffESP = false, ShootMurderer = false}
 
 -- === FARM SEKMESİ ===
 local FarmCard = CreateCategoryCard(FarmTab, "Otomatik Kasılma (Farm)")
 
-CreateToggle(FarmCard, "Akıllı Altın Topla", "30 hızda uçarak toplar. Biterse reset atar. Kalıcıdır.", function(state)
+CreateToggle(FarmCard, "Akıllı Altın Topla", "30 hızda uçar, bitince reset atar.", 1, function(state)
     Toggles.AutoCoin = state
     task.spawn(function()
         while Toggles.AutoCoin do
@@ -676,7 +768,7 @@ CreateToggle(FarmCard, "Akıllı Altın Topla", "30 hızda uçarak toplar. Biter
                 if #coins > 0 then
                     local targetCoin = coins[1]
                     local dist = (hrp.Position - targetCoin.Position).Magnitude
-                    local timeToTravel = dist / 30 -- Sabit 30 hız hesabı
+                    local timeToTravel = dist / 30 
                     
                     local tweenInfo = TweenInfo.new(timeToTravel, Enum.EasingStyle.Linear)
                     local tween = TweenService:Create(hrp, tweenInfo, {CFrame = targetCoin.CFrame})
@@ -698,17 +790,17 @@ CreateToggle(FarmCard, "Akıllı Altın Topla", "30 hızda uçarak toplar. Biter
                     if tween then tween:Cancel() end
                     hrp.Anchored = false
                 else
-                    char.Humanoid.Health = 0 -- Altın bitti, reset çek
-                    task.wait(4) -- Doğmayı bekle
+                    char.Humanoid.Health = 0 
+                    task.wait(4)
                 end
             else
-                task.wait(1) -- Karakterin doğmasını bekle (Ölünce kapanmaz)
+                task.wait(1)
             end
         end
     end)
 end)
 
-CreateToggle(FarmCard, "Akıllı Silah Topla", "Silaha ışınlanıp alır ve eski yerine döner.", function(state)
+CreateToggle(FarmCard, "Akıllı Silah Topla", "Silaha ışınlanıp eski yerine döner.", 0, function(state)
     Toggles.AutoGun = state
     while Toggles.AutoGun and task.wait(0.5) do
         pcall(function()
@@ -732,7 +824,7 @@ end)
 -- === SAVAŞ (COMBAT) SEKMESİ ===
 local CombatCard = CreateCategoryCard(CombatTab, "Saldırı ve Savunma")
 
-CreateToggle(CombatCard, "Otomatik Katlet", "Katilken herkesi otomatik öldürür.", function(state)
+CreateToggle(CombatCard, "Otomatik Katlet", "Katilken herkesi otomatik öldürür.", 2, function(state)
     Toggles.AutoKill = state
     while Toggles.AutoKill and task.wait(0.3) do
         pcall(function()
@@ -755,14 +847,13 @@ CreateToggle(CombatCard, "Otomatik Katlet", "Katilken herkesi otomatik öldürü
     end
 end)
 
-CreateToggle(CombatCard, "Katili Vur (Shoot Murderer)", "Şerif isen otomatik olarak katili hedefler ve vurur.", function(state)
+CreateToggle(CombatCard, "Katili Vur", "Şerif isen otomatik olarak katili vurur.", 2, function(state)
     Toggles.ShootMurderer = state
     while Toggles.ShootMurderer and task.wait(0.2) do
         pcall(function()
             local char = LocalPlayer.Character
             local gun = LocalPlayer.Backpack:FindFirstChild("Gun") or (char and char:FindFirstChild("Gun"))
             if gun and char and char:FindFirstChild("HumanoidRootPart") then
-                -- Katili bul
                 local murderer = nil
                 for _, plr in pairs(Players:GetPlayers()) do
                     if plr ~= LocalPlayer and plr.Character then
@@ -773,7 +864,6 @@ CreateToggle(CombatCard, "Katili Vur (Shoot Murderer)", "Şerif isen otomatik ol
                     end
                 end
                 
-                -- Katil bulunduysa ona bak ve sık
                 if murderer and murderer.Character and murderer.Character:FindFirstChild("HumanoidRootPart") then
                     if gun.Parent ~= char then gun.Parent = char end
                     Workspace.CurrentCamera.CFrame = CFrame.new(Workspace.CurrentCamera.CFrame.Position, murderer.Character.HumanoidRootPart.Position)
@@ -784,10 +874,248 @@ CreateToggle(CombatCard, "Katili Vur (Shoot Murderer)", "Şerif isen otomatik ol
     end
 end)
 
+-- === OYUNCU (PLAYER) SEKMESİ ===
+local HareketCard = CreateCategoryCard(PlayerTab, "Hareket")
+local UtilityCard = CreateCategoryCard(PlayerTab, "Özel Güçler")
+
+CreateToggle(HareketCard, "Hızlı Yürüme", "Yürüme hızını 50 yapar.", 0, function(state)
+    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+        LocalPlayer.Character.Humanoid.WalkSpeed = state and 50 or 16
+    end
+end)
+
+local NoclipConnection
+CreateToggle(HareketCard, "Noclip", "Duvarların içinden geçersin.", 1, function(state)
+    if state then
+        NoclipConnection = RunService.Stepped:Connect(function()
+            if LocalPlayer.Character then
+                for _, part in pairs(LocalPlayer.Character:GetDescendants()) do
+                    if part:IsA("BasePart") and part.CanCollide then
+                        part.CanCollide = false
+                    end
+                end
+            end
+        end)
+    else
+        if NoclipConnection then NoclipConnection:Disconnect() NoclipConnection = nil end
+    end
+end)
+
+local FlyConnection, FlyGUI
+local FlySpeed = 50
+local flying = false
+local IdleAnimTrack, MoveAnimTrack = nil, nil
+
+CreateToggle(HareketCard, "Pürüzsüz Uçuş (Fly)", "Premium animasyon destekli Fly.", 1, function(state)
+    flying = state
+    local char = LocalPlayer.Character
+    if not char or not char:FindFirstChild("HumanoidRootPart") or not char:FindFirstChild("Humanoid") then return end
+    local hrp = char.HumanoidRootPart
+    local hum = char.Humanoid
+
+    local function StopFly()
+        flying = false
+        hum.PlatformStand = false 
+        hum.AutoRotate = true
+        
+        if FlyConnection then FlyConnection:Disconnect() FlyConnection = nil end
+        if hrp:FindFirstChild("FlyBV") then hrp.FlyBV:Destroy() end
+        if hrp:FindFirstChild("FlyBG") then hrp.FlyBG:Destroy() end
+        if FlyGUI then FlyGUI:Destroy() FlyGUI = nil end
+        
+        if IdleAnimTrack then IdleAnimTrack:Stop() IdleAnimTrack:Destroy() IdleAnimTrack = nil end
+        if MoveAnimTrack then MoveAnimTrack:Stop() MoveAnimTrack:Destroy() MoveAnimTrack = nil end
+    end
+
+    if flying then
+        hum.PlatformStand = true 
+        hum.AutoRotate = false
+
+        -- Animasyonları Sadece Premium (Tier 2) isek oynat
+        if UserTierValue >= 2 then
+            local animator = hum:FindFirstChildOfClass("Animator")
+            if animator then
+                local idleAnim = Instance.new("Animation")
+                idleAnim.AnimationId = "rbxassetid://123349905320515"
+                IdleAnimTrack = animator:LoadAnimation(idleAnim)
+                IdleAnimTrack.Priority = Enum.AnimationPriority.Action 
+
+                local moveAnim = Instance.new("Animation")
+                moveAnim.AnimationId = "rbxassetid://115250948577308"
+                MoveAnimTrack = animator:LoadAnimation(moveAnim)
+                MoveAnimTrack.Priority = Enum.AnimationPriority.Action
+
+                IdleAnimTrack:Play()
+            end
+        end
+
+        local bv = Instance.new("BodyVelocity")
+        bv.Name = "FlyBV"
+        bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+        bv.Velocity = Vector3.new(0, 0, 0)
+        bv.Parent = hrp
+
+        local bg = Instance.new("BodyGyro")
+        bg.Name = "FlyBG"
+        bg.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
+        bg.P = 9e4
+        bg.CFrame = hrp.CFrame
+        bg.Parent = hrp
+
+        if not CoreGui:FindFirstChild("FlySettingsMenu") then
+            FlyGUI = Instance.new("ScreenGui")
+            FlyGUI.Name = "FlySettingsMenu"
+            pcall(function() FlyGUI.Parent = CoreGui end)
+            if not FlyGUI.Parent then FlyGUI.Parent = LocalPlayer:WaitForChild("PlayerGui") end
+
+            local MenuFrame = Instance.new("Frame")
+            MenuFrame.Size = UDim2.new(0, 150, 0, 130)
+            MenuFrame.Position = UDim2.new(1, -170, 0.5, -65) 
+            MenuFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 23)
+            Instance.new("UICorner", MenuFrame).CornerRadius = UDim.new(0, 10)
+            Instance.new("UIStroke", MenuFrame).Color = Color3.fromRGB(138, 43, 226)
+            MenuFrame.Parent = FlyGUI
+
+            local Title = Instance.new("TextLabel")
+            Title.Size = UDim2.new(1, 0, 0, 30)
+            Title.BackgroundTransparency = 1
+            Title.Text = "FLY AYARLARI"
+            Title.Font = Enum.Font.GothamBlack
+            Title.TextColor3 = Color3.fromRGB(138, 43, 226)
+            Title.Parent = MenuFrame
+
+            local SpeedLabel = Instance.new("TextLabel")
+            SpeedLabel.Size = UDim2.new(1, 0, 0, 30)
+            SpeedLabel.Position = UDim2.new(0, 0, 0, 35)
+            SpeedLabel.BackgroundTransparency = 1
+            SpeedLabel.Text = "Hız: " .. FlySpeed
+            SpeedLabel.Font = Enum.Font.GothamBold
+            SpeedLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+            SpeedLabel.Parent = MenuFrame
+
+            local BtnMinus = Instance.new("TextButton")
+            BtnMinus.Size = UDim2.new(0, 40, 0, 30)
+            BtnMinus.Position = UDim2.new(0, 10, 0, 35)
+            BtnMinus.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
+            BtnMinus.Text = "-"
+            BtnMinus.Font = Enum.Font.GothamBold
+            BtnMinus.TextColor3 = Color3.fromRGB(255, 100, 100)
+            Instance.new("UICorner", BtnMinus).CornerRadius = UDim.new(0, 6)
+            BtnMinus.Parent = MenuFrame
+
+            local BtnPlus = Instance.new("TextButton")
+            BtnPlus.Size = UDim2.new(0, 40, 0, 30)
+            BtnPlus.Position = UDim2.new(1, -50, 0, 35)
+            BtnPlus.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
+            BtnPlus.Text = "+"
+            BtnPlus.Font = Enum.Font.GothamBold
+            BtnPlus.TextColor3 = Color3.fromRGB(100, 255, 100)
+            Instance.new("UICorner", BtnPlus).CornerRadius = UDim.new(0, 6)
+            BtnPlus.Parent = MenuFrame
+
+            local BtnClose = Instance.new("TextButton")
+            BtnClose.Size = UDim2.new(1, -20, 0, 35)
+            BtnClose.Position = UDim2.new(0, 10, 0, 80)
+            BtnClose.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+            BtnClose.Text = "UÇMAYI KAPAT"
+            BtnClose.Font = Enum.Font.GothamBold
+            BtnClose.TextColor3 = Color3.fromRGB(255, 255, 255)
+            Instance.new("UICorner", BtnClose).CornerRadius = UDim.new(0, 6)
+            BtnClose.Parent = MenuFrame
+
+            BtnPlus.MouseButton1Down:Connect(function() FlySpeed = FlySpeed + 10; SpeedLabel.Text = "Hız: "..FlySpeed end)
+            BtnMinus.MouseButton1Down:Connect(function() FlySpeed = math.max(10, FlySpeed - 10); SpeedLabel.Text = "Hız: "..FlySpeed end)
+            BtnClose.MouseButton1Down:Connect(function() StopFly() end)
+        end
+
+        FlyConnection = RunService.RenderStepped:Connect(function()
+            if char and char:FindFirstChild("Humanoid") and hrp:FindFirstChild("FlyBV") then
+                local cam = Workspace.CurrentCamera
+                local moveDir = char.Humanoid.MoveDirection
+
+                if moveDir.Magnitude > 0 then
+                    local flatLook = Vector3.new(cam.CFrame.LookVector.X, 0, cam.CFrame.LookVector.Z).Unit
+                    local flatRight = Vector3.new(cam.CFrame.RightVector.X, 0, cam.CFrame.RightVector.Z).Unit
+                    local forwardInput = flatLook:Dot(moveDir)
+                    local rightInput = flatRight:Dot(moveDir)
+                    local moveVector = (cam.CFrame.LookVector * forwardInput) + (cam.CFrame.RightVector * rightInput)
+                    hrp.FlyBV.Velocity = moveVector * FlySpeed
+                    
+                    if IdleAnimTrack and IdleAnimTrack.IsPlaying then IdleAnimTrack:Stop() end
+                    if MoveAnimTrack and not MoveAnimTrack.IsPlaying then MoveAnimTrack:Play() end
+                else
+                    hrp.FlyBV.Velocity = Vector3.new(0, 0, 0)
+                    if MoveAnimTrack and MoveAnimTrack.IsPlaying then MoveAnimTrack:Stop() end
+                    if IdleAnimTrack and not IdleAnimTrack.IsPlaying then IdleAnimTrack:Play() end
+                end
+                hrp.FlyBG.CFrame = cam.CFrame
+            end
+        end)
+    else
+        StopFly()
+    end
+end)
+
+local safeIsHiding = false
+local safePos = nil
+CreateToggle(UtilityCard, "Güvenli Mod", "Katil yaklaşınca kaçar, uzaklaşınca geri döner.", 1, function(state)
+    Toggles.SafeMode = state
+    while Toggles.SafeMode and task.wait(0.2) do
+        pcall(function()
+            local char = LocalPlayer.Character
+            if char and char:FindFirstChild("HumanoidRootPart") then
+                local hrp = char.HumanoidRootPart
+                local murderer = nil
+                
+                -- Katili Çantadan veya Karakterden Bulma Mantığı Düzeltildi
+                for _, plr in pairs(Players:GetPlayers()) do
+                    if plr ~= LocalPlayer and plr.Character then
+                        if plr.Backpack:FindFirstChild("Knife") or plr.Character:FindFirstChild("Knife") then
+                            murderer = plr
+                            break
+                        end
+                    end
+                end
+                
+                if murderer and murderer.Character and murderer.Character:FindFirstChild("HumanoidRootPart") then
+                    local dist = (hrp.Position - murderer.Character.HumanoidRootPart.Position).Magnitude
+                    if dist < 20 and not safeIsHiding then
+                        safeIsHiding = true
+                        safePos = hrp.CFrame
+                        hrp.CFrame = hrp.CFrame + Vector3.new(0, 60, 0)
+                        Notify("Katil yaklaştı! Güvenli konuma kaçıldı.")
+                    elseif dist > 35 and safeIsHiding then
+                        safeIsHiding = false
+                        hrp.CFrame = safePos
+                        Notify("Tehlike geçti, geri dönüldü.")
+                    end
+                else
+                    if safeIsHiding then
+                        safeIsHiding = false
+                        hrp.CFrame = safePos
+                        Notify("Katil öldü/çıktı, geri dönüldü.")
+                    end
+                end
+            end
+        end)
+    end
+end)
+
+CreateToggle(UtilityCard, "Görünmezlik (Invisible)", "Local görünmezlik sağlar.", 2, function(state)
+    local char = LocalPlayer.Character
+    if char then
+        for _, v in pairs(char:GetDescendants()) do
+            if v:IsA("BasePart") or v:IsA("Decal") then
+                if v.Name ~= "HumanoidRootPart" then
+                    v.Transparency = state and 1 or 0
+                end
+            end
+        end
+    end
+end)
+
 -- === GÖRSEL (VISUAL) SEKMESİ (ESP) ===
 local VisualCard = CreateCategoryCard(VisualTab, "Oyuncu İzleme (ESP)")
-
--- ESP Yardımcı Fonksiyonları
 local ESPFolder = Instance.new("Folder")
 ESPFolder.Name = "DarkerSH_ESP"
 ESPFolder.Parent = CoreGui
@@ -799,14 +1127,13 @@ local function GetRole(player)
 end
 
 local function UpdateESP()
-    -- Eski ESP'leri temizle
     for _, v in pairs(ESPFolder:GetChildren()) do v:Destroy() end
 
     for _, plr in pairs(Players:GetPlayers()) do
         if plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
             local role = GetRole(plr)
             local shouldDraw = false
-            local espColor = Color3.fromRGB(0, 255, 0) -- Yeşil (Masum)
+            local espColor = Color3.fromRGB(0, 255, 0) 
             
             if Toggles.PlayerESP then
                 shouldDraw = true
@@ -842,360 +1169,49 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
-CreateToggle(VisualCard, "Tüm Oyuncular (Player ESP)", "Masum: Yeşil, Katil: Kırmızı, Şerif: Mavi", function(state)
+CreateToggle(VisualCard, "Tüm Oyuncular (Player ESP)", "Masum: Yeşil, Katil: Kırmızı, Şerif: Mavi", 1, function(state)
     Toggles.PlayerESP = state
 end)
-
-CreateToggle(VisualCard, "Sadece Katil (Murderer ESP)", "Katili Kırmızı renk ile gösterir.", function(state)
+CreateToggle(VisualCard, "Sadece Katil (Murderer ESP)", "Katili Kırmızı renk ile gösterir.", 0, function(state)
     Toggles.MurdererESP = state
 end)
-
-CreateToggle(VisualCard, "Sadece Şerif (Sheriff ESP)", "Şerifi Mavi renk ile gösterir.", function(state)
+CreateToggle(VisualCard, "Sadece Şerif (Sheriff ESP)", "Şerifi Mavi renk ile gösterir.", 0, function(state)
     Toggles.SheriffESP = state
 end)
 
-
--- === HAREKET VE UTILITY (Önceki kodların aynısı, yeni Karta uyarlandı) ===
--- === HAREKET VE UTILITY ===
-local HareketCard = CreateCategoryCard(PlayerTab, "Hareket (Movement)")
-local UtilityCard = CreateCategoryCard(PlayerTab, "Özel Güçler (Utility)")
-
-CreateToggle(HareketCard, "Hızlı Yürüme", "Karakterin yürüme hızını 50'ye çıkarır.", function(state)
-    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
-        LocalPlayer.Character.Humanoid.WalkSpeed = state and 50 or 16
-    end
-end)
-
-local NoclipConnection
-CreateToggle(HareketCard, "Noclip", "Fiziksel nesnelerin ve duvarların içinden geçmeni sağlar.", function(state)
-    if state then
-        NoclipConnection = RunService.Stepped:Connect(function()
-            if LocalPlayer.Character then
-                for _, part in pairs(LocalPlayer.Character:GetDescendants()) do
-                    if part:IsA("BasePart") and part.CanCollide then
-                        part.CanCollide = false
-                    end
-                end
-            end
-        end)
-    else
-        if NoclipConnection then NoclipConnection:Disconnect() NoclipConnection = nil end
-    end
-end)
-
-local FlyConnection
-local FlyGUI 
-local FlySpeed = 50
-local flying = false
-local IdleAnimTrack = nil
-local MoveAnimTrack = nil
-
-CreateToggle(HareketCard, "Uçma (Fly)", "Joystick/WASD ve kamera yönüne duyarlı pürüzsüz uçuş.", function(state)
-    flying = state
-    local char = LocalPlayer.Character
-    if not char or not char:FindFirstChild("HumanoidRootPart") or not char:FindFirstChild("Humanoid") then return end
-    local hrp = char.HumanoidRootPart
-    local hum = char.Humanoid
-
-    local function StopFly()
-        flying = false
-        hum.PlatformStand = false 
-        hum.AutoRotate = true
-        
-        if FlyConnection then FlyConnection:Disconnect() FlyConnection = nil end
-        if hrp:FindFirstChild("FlyBV") then hrp.FlyBV:Destroy() end
-        if hrp:FindFirstChild("FlyBG") then hrp.FlyBG:Destroy() end
-        if FlyGUI then FlyGUI:Destroy() FlyGUI = nil end
-        
-        if IdleAnimTrack then IdleAnimTrack:Stop() IdleAnimTrack:Destroy() IdleAnimTrack = nil end
-        if MoveAnimTrack then MoveAnimTrack:Stop() MoveAnimTrack:Destroy() MoveAnimTrack = nil end
-    end
-
-    if flying then
-        hum.PlatformStand = true 
-        hum.AutoRotate = false
-
-        local animator = hum:FindFirstChildOfClass("Animator")
-        if animator then
-            local idleAnim = Instance.new("Animation")
-            idleAnim.AnimationId = "rbxassetid://123349905320515"
-            IdleAnimTrack = animator:LoadAnimation(idleAnim)
-            IdleAnimTrack.Priority = Enum.AnimationPriority.Action 
-
-            local moveAnim = Instance.new("Animation")
-            moveAnim.AnimationId = "rbxassetid://115250948577308"
-            MoveAnimTrack = animator:LoadAnimation(moveAnim)
-            MoveAnimTrack.Priority = Enum.AnimationPriority.Action
-
-            IdleAnimTrack:Play()
-        end
-
-        local bv = Instance.new("BodyVelocity")
-        bv.Name = "FlyBV"
-        bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
-        bv.Velocity = Vector3.new(0, 0, 0)
-        bv.Parent = hrp
-
-        local bg = Instance.new("BodyGyro")
-        bg.Name = "FlyBG"
-        bg.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
-        bg.P = 9e4
-        bg.CFrame = hrp.CFrame
-        bg.Parent = hrp
-
-        if not CoreGui:FindFirstChild("FlySettingsMenu") then
-            FlyGUI = Instance.new("ScreenGui")
-            FlyGUI.Name = "FlySettingsMenu"
-            FlyGUI.ResetOnSpawn = false
-            pcall(function() FlyGUI.Parent = CoreGui end)
-            if not FlyGUI.Parent then FlyGUI.Parent = LocalPlayer:WaitForChild("PlayerGui") end
-
-            local MenuFrame = Instance.new("Frame")
-            MenuFrame.Size = UDim2.new(0, 150, 0, 130)
-            MenuFrame.Position = UDim2.new(1, -170, 0.5, -65) 
-            MenuFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 23)
-            MenuFrame.ZIndex = 100
-            Instance.new("UICorner", MenuFrame).CornerRadius = UDim.new(0, 10)
-            
-            local Stroke = Instance.new("UIStroke")
-            Stroke.Color = Color3.fromRGB(138, 43, 226)
-            Stroke.Thickness = 1.5
-            Stroke.Parent = MenuFrame
-            MenuFrame.Parent = FlyGUI
-
-            local Title = Instance.new("TextLabel")
-            Title.Size = UDim2.new(1, 0, 0, 30)
-            Title.BackgroundTransparency = 1
-            Title.Text = "FLY AYARLARI"
-            Title.Font = Enum.Font.GothamBlack
-            Title.TextColor3 = Color3.fromRGB(138, 43, 226)
-            Title.TextSize = 12
-            Title.ZIndex = 101
-            Title.Parent = MenuFrame
-
-            local SpeedLabel = Instance.new("TextLabel")
-            SpeedLabel.Size = UDim2.new(1, 0, 0, 30)
-            SpeedLabel.Position = UDim2.new(0, 0, 0, 35)
-            SpeedLabel.BackgroundTransparency = 1
-            SpeedLabel.Text = "Hız: " .. FlySpeed
-            SpeedLabel.Font = Enum.Font.GothamBold
-            SpeedLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-            SpeedLabel.TextSize = 12
-            SpeedLabel.ZIndex = 101
-            SpeedLabel.Parent = MenuFrame
-
-            local BtnMinus = Instance.new("TextButton")
-            BtnMinus.Size = UDim2.new(0, 40, 0, 30)
-            BtnMinus.Position = UDim2.new(0, 10, 0, 35)
-            BtnMinus.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
-            BtnMinus.Text = "-"
-            BtnMinus.Font = Enum.Font.GothamBold
-            BtnMinus.TextColor3 = Color3.fromRGB(255, 100, 100)
-            BtnMinus.TextSize = 16
-            BtnMinus.ZIndex = 101
-            Instance.new("UICorner", BtnMinus).CornerRadius = UDim.new(0, 6)
-            BtnMinus.Parent = MenuFrame
-
-            local BtnPlus = Instance.new("TextButton")
-            BtnPlus.Size = UDim2.new(0, 40, 0, 30)
-            BtnPlus.Position = UDim2.new(1, -50, 0, 35)
-            BtnPlus.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
-            BtnPlus.Text = "+"
-            BtnPlus.Font = Enum.Font.GothamBold
-            BtnPlus.TextColor3 = Color3.fromRGB(100, 255, 100)
-            BtnPlus.TextSize = 16
-            BtnPlus.ZIndex = 101
-            Instance.new("UICorner", BtnPlus).CornerRadius = UDim.new(0, 6)
-            BtnPlus.Parent = MenuFrame
-
-            local BtnClose = Instance.new("TextButton")
-            BtnClose.Size = UDim2.new(1, -20, 0, 35)
-            BtnClose.Position = UDim2.new(0, 10, 0, 80)
-            BtnClose.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-            BtnClose.Text = "UÇMAYI KAPAT"
-            BtnClose.Font = Enum.Font.GothamBold
-            BtnClose.TextColor3 = Color3.fromRGB(255, 255, 255)
-            BtnClose.TextSize = 11
-            BtnClose.ZIndex = 101
-            Instance.new("UICorner", BtnClose).CornerRadius = UDim.new(0, 6)
-            BtnClose.Parent = MenuFrame
-
-            BtnPlus.MouseButton1Down:Connect(function()
-                FlySpeed = FlySpeed + 10
-                SpeedLabel.Text = "Hız: " .. FlySpeed
-            end)
-            
-            BtnMinus.MouseButton1Down:Connect(function()
-                FlySpeed = math.max(10, FlySpeed - 10) 
-                SpeedLabel.Text = "Hız: " .. FlySpeed
-            end)
-            
-            BtnClose.MouseButton1Down:Connect(function()
-                StopFly()
-                Notify("Fly kapatıldı.")
-            end)
-        end
-
-        FlyConnection = RunService.RenderStepped:Connect(function()
-            if char and char:FindFirstChild("Humanoid") and hrp:FindFirstChild("FlyBV") then
-                local cam = Workspace.CurrentCamera
-                local moveDir = char.Humanoid.MoveDirection
-
-                if moveDir.Magnitude > 0 then
-                    local flatLook = Vector3.new(cam.CFrame.LookVector.X, 0, cam.CFrame.LookVector.Z).Unit
-                    local flatRight = Vector3.new(cam.CFrame.RightVector.X, 0, cam.CFrame.RightVector.Z).Unit
-
-                    local forwardInput = flatLook:Dot(moveDir)
-                    local rightInput = flatRight:Dot(moveDir)
-
-                    local moveVector = (cam.CFrame.LookVector * forwardInput) + (cam.CFrame.RightVector * rightInput)
-                    hrp.FlyBV.Velocity = moveVector * FlySpeed
-                    
-                    if IdleAnimTrack and IdleAnimTrack.IsPlaying then IdleAnimTrack:Stop() end
-                    if MoveAnimTrack and not MoveAnimTrack.IsPlaying then MoveAnimTrack:Play() end
-                else
-                    hrp.FlyBV.Velocity = Vector3.new(0, 0, 0)
-                    
-                    if MoveAnimTrack and MoveAnimTrack.IsPlaying then MoveAnimTrack:Stop() end
-                    if IdleAnimTrack and not IdleAnimTrack.IsPlaying then IdleAnimTrack:Play() end
-                end
-                
-                hrp.FlyBG.CFrame = cam.CFrame
-            end
-        end)
-    else
-        StopFly()
-    end
-end)
-
-CreateToggle(UtilityCard, "AFK Koruması", "Oyundan atılmanı engeller.", function(state)
-    Toggles.AntiAFK = state
-    if Toggles.AntiAFK then
-        LocalPlayer.Idled:Connect(function()
-            VirtualUser:Button2Down(Vector2.new(0,0), Workspace.CurrentCamera.CFrame)
-            task.wait(1)
-            VirtualUser:Button2Up(Vector2.new(0,0), Workspace.CurrentCamera.CFrame)
-        end)
-    end
-end)
-
-CreateToggle(UtilityCard, "Güvenli Mod", "Katil yakınlaşınca otomatik olarak yukarı kaçar.", function(state)
-    Toggles.SafeMode = state
-    while Toggles.SafeMode and task.wait(0.2) do
-        pcall(function()
-            local char = LocalPlayer.Character
-            if char and char:FindFirstChild("HumanoidRootPart") then
-                for _, plr in pairs(Players:GetPlayers()) do
-                    if plr ~= LocalPlayer and plr.Character and plr.Character:FindFirstChild("Knife") then
-                        local dist = (char.HumanoidRootPart.Position - plr.Character.HumanoidRootPart.Position).Magnitude
-                        if dist < 18 then
-                            char.HumanoidRootPart.CFrame = char.HumanoidRootPart.CFrame + Vector3.new(0, 60, 0)
-                            Notify("Katil yaklaştı! Güvenli konuma kaçıldı.")
-                        end
-                    end
-                end
-            end
-        end)
-    end
-end)
-
-local TechPlatform, PlatformGUI, PlatformConnection
-local PlatformY = 0
-local movingUp, movingDown = false, false
-
-CreateToggle(UtilityCard, "Tech Platform", "Ayağının altında kontrol edilebilir teknolojik platform belirir.", function(state)
-    if state then
-        local char = LocalPlayer.Character
-        if not char or not char:FindFirstChild("HumanoidRootPart") then
-            Notify("Karakter bulunamadı!")
-            return
-        end
-        
-        PlatformY = char.HumanoidRootPart.Position.Y - 3.5
-
-        TechPlatform = Instance.new("Part")
-        TechPlatform.Name = "TechHoverBoard"
-        TechPlatform.Size = Vector3.new(6, 0.5, 6)
-        TechPlatform.Anchored = true
-        TechPlatform.CanCollide = true
-        TechPlatform.Material = Enum.Material.Neon
-        TechPlatform.Color = Color3.fromRGB(100, 240, 255)
-        TechPlatform.Transparency = 0.3
-        TechPlatform.Parent = Workspace
-        
-        PlatformGUI = Instance.new("ScreenGui")
-        PlatformGUI.Name = "PlatformController"
-        PlatformGUI.ResetOnSpawn = false
-        
-        local success = pcall(function() PlatformGUI.Parent = CoreGui end)
-        if not success then PlatformGUI.Parent = LocalPlayer:WaitForChild("PlayerGui") end
-
-        local ControlFrame = Instance.new("Frame")
-        ControlFrame.Size = UDim2.new(0, 100, 0, 120)
-        ControlFrame.Position = UDim2.new(1, -120, 0.5, -60)
-        ControlFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 18)
-        ControlFrame.BackgroundTransparency = 0.2
-        ControlFrame.ZIndex = 100
-        Instance.new("UICorner", ControlFrame).CornerRadius = UDim.new(0, 10)
-        
-        local UIStroke = Instance.new("UIStroke")
-        UIStroke.Color = Color3.fromRGB(100, 240, 255)
-        UIStroke.Thickness = 1.5
-        UIStroke.Parent = ControlFrame
-        ControlFrame.Parent = PlatformGUI
-
-        local BtnUp = Instance.new("TextButton")
-        BtnUp.Size = UDim2.new(1, -10, 0.5, -10)
-        BtnUp.Position = UDim2.new(0, 5, 0, 5)
-        BtnUp.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
-        BtnUp.Text = "▲ YUKARI"
-        BtnUp.TextColor3 = Color3.fromRGB(100, 240, 255)
-        BtnUp.Font = Enum.Font.GothamBold
-        BtnUp.AutoButtonColor = true
-        Instance.new("UICorner", BtnUp).CornerRadius = UDim.new(0, 5)
-        BtnUp.Parent = ControlFrame
-
-        local BtnDown = Instance.new("TextButton")
-        BtnDown.Size = UDim2.new(1, -10, 0.5, -10)
-        BtnDown.Position = UDim2.new(0, 5, 0.5, 5)
-        BtnDown.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
-        BtnDown.Text = "▼ AŞAĞI"
-        BtnDown.TextColor3 = Color3.fromRGB(100, 240, 255)
-        BtnDown.Font = Enum.Font.GothamBold
-        BtnDown.AutoButtonColor = true
-        Instance.new("UICorner", BtnDown).CornerRadius = UDim.new(0, 5)
-        BtnDown.Parent = ControlFrame
-
-        BtnUp.MouseButton1Down:Connect(function() movingUp = true end)
-        BtnUp.MouseButton1Up:Connect(function() movingUp = false end)
-        BtnUp.MouseLeave:Connect(function() movingUp = false end)
-
-        BtnDown.MouseButton1Down:Connect(function() movingDown = true end)
-        BtnDown.MouseButton1Up:Connect(function() movingDown = false end)
-        BtnDown.MouseLeave:Connect(function() movingDown = false end)
-
-        PlatformConnection = RunService.RenderStepped:Connect(function()
-            if movingUp then PlatformY = PlatformY + 1 end
-            if movingDown then PlatformY = PlatformY - 1 end
-            
-            if TechPlatform and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-                local hrp = LocalPlayer.Character.HumanoidRootPart
-                TechPlatform.CFrame = CFrame.new(hrp.Position.X, PlatformY, hrp.Position.Z)
-            end
-        end)
-
-    else
-        if PlatformConnection then PlatformConnection:Disconnect() PlatformConnection = nil end
-        if TechPlatform then TechPlatform:Destroy() TechPlatform = nil end
-        if PlatformGUI then PlatformGUI:Destroy() PlatformGUI = nil end
-        movingUp, movingDown = false, false
-    end
-end)
 -- ==========================================
 -- 5. INTRO GEÇİŞİ (GARANTİLİ THREAD)
 -- ==========================================
+local IntroFrame = Instance.new("Frame")
+IntroFrame.Size = UDim2.new(1, 0, 1, 0)
+IntroFrame.BackgroundColor3 = Color3.fromRGB(15, 10, 20)
+IntroFrame.ZIndex = 200
+IntroFrame.Parent = ScreenGui
+
+local IntroGradient = Instance.new("UIGradient")
+IntroGradient.Color = ColorSequence.new{
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(48, 0, 74)),
+    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(15, 15, 15)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(48, 0, 74))
+}
+IntroGradient.Rotation = 45
+IntroGradient.Parent = IntroFrame
+
+local IntroText = Instance.new("TextLabel")
+IntroText.Size = UDim2.new(0.8, 0, 0.4, 0)
+IntroText.Position = UDim2.new(0.1, 0, 0.3, 0)
+IntroText.BackgroundTransparency = 1
+IntroText.Text = "DarkerSH Premium Hub"
+IntroText.Font = Enum.Font.GothamBlack
+IntroText.TextScaled = true
+IntroText.TextColor3 = Color3.fromRGB(255, 255, 255)
+IntroText.ZIndex = 201
+IntroText.Parent = IntroFrame
+
+TweenService:Create(IntroGradient, waveTweenInfo, {Offset = Vector2.new(1, 0)}):Play()
+
 task.spawn(function()
-    task.wait(3) 
+    task.wait(2.5) 
     
     local fadeOutInfo = TweenInfo.new(1, Enum.EasingStyle.Sine, Enum.EasingDirection.Out)
     pcall(function()
@@ -1206,9 +1222,9 @@ task.spawn(function()
     task.wait(1)
     pcall(function() IntroFrame:Destroy() end)
     
-    MainFrame.Size = UDim2.new(0, 500, 0, 420)
+    MainFrame.Size = UDim2.new(0, 600, 0, 420)
     MainFrame.Visible = true
-    TweenService:Create(MainFrame, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = UDim2.new(0, 620, 0, 520)}):Play()
+    TweenService:Create(MainFrame, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = UDim2.new(0, 800, 0, 520)}):Play()
     
-    Notify("DarkerSH Reborn Başarıyla Yüklendi!")
+    Notify("Ana menüden giriş yapınız.")
 end)
