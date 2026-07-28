@@ -51,6 +51,44 @@ local function MakeDraggable(gui, dragPart)
         end
     end)
 end
+local function MakeResizable(gui, minSizeX, minSizeY)
+    local ResizeHandle = Instance.new("TextButton")
+    ResizeHandle.Size = UDim2.new(0, 20, 0, 20)
+    ResizeHandle.Position = UDim2.new(1, -20, 1, -20)
+    ResizeHandle.BackgroundTransparency = 1
+    ResizeHandle.Text = "◢"
+    ResizeHandle.TextColor3 = Color3.fromRGB(200, 200, 200)
+    ResizeHandle.TextSize = 14
+    ResizeHandle.ZIndex = 50
+    ResizeHandle.Parent = gui
+
+    local dragging = false
+    local dragStart, startSize
+
+    ResizeHandle.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startSize = gui.Size
+        end
+    end)
+
+    UserInputService.InputChanged:Connect(function(input)
+        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            local delta = input.Position - dragStart
+            local newX = math.max(minSizeX, startSize.X.Offset + delta.X)
+            local newY = math.max(minSizeY, startSize.Y.Offset + delta.Y)
+            gui.Size = UDim2.new(0, newX, 0, newY)
+        end
+    end)
+
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = false
+        end
+    end)
+    return ResizeHandle
+end
 
 -- ==========================================
 -- BİLDİRİM (NOTIFICATION) SİSTEMİ
@@ -129,6 +167,8 @@ MainFrame.Active = true
 MainFrame.ZIndex = 1
 MainFrame.Parent = ScreenGui
 Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 12)
+-- Menüyü boyutlandırılabilir yapan kodu buraya ekliyoruz:
+MakeResizable(MainFrame, 480, 420)
 
 local MainGradient = Instance.new("UIGradient")
 MainGradient.Color = ColorSequence.new{
@@ -213,14 +253,23 @@ MakeDraggable(FloatingIcon) -- Mini logoyu her yerden sürüklenebilir yapar
 CloseBtn.MouseButton1Click:Connect(function() ScreenGui:Destroy() end)
 
 MinimizeBtn.MouseButton1Click:Connect(function()
+    TweenService:Create(MainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.In), {Size = UDim2.new(0, 0, 0, 0)}):Play()
+    task.wait(0.3)
     MainFrame.Visible = false
     FloatingIcon.Visible = true
-    Notify("Menü küçültüldü. Logoya tıklayarak açabilirsiniz.")
+    FloatingIcon.Size = UDim2.new(0, 0, 0, 0)
+    TweenService:Create(FloatingIcon, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = UDim2.new(0, 60, 0, 60)}):Play()
+    Notify("Menü küçültüldü.")
 end)
 
 FloatingIcon.MouseButton1Click:Connect(function()
+    TweenService:Create(FloatingIcon, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.In), {Size = UDim2.new(0, 0, 0, 0)}):Play()
+    task.wait(0.3)
     FloatingIcon.Visible = false
     MainFrame.Visible = true
+    MainFrame.Size = UDim2.new(0, 0, 0, 0)
+    -- MainFrame genişliğini ne kullanıyorsan (Örn: 620) buraya yaz:
+    TweenService:Create(MainFrame, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = UDim2.new(0, 800, 0, 520)}):Play()
 end)
 
 -- Yan Menü (Sidebar)
@@ -369,7 +418,11 @@ local function CreateTab(name, isDefault, useGrid)
     TabBtn.MouseButton1Click:Connect(function()
         for tName, tabData in pairs(Tabs) do
             if tName == name then
-                tabData.Page.Visible = true
+                if not tabData.Page.Visible then
+                    tabData.Page.Position = UDim2.new(-1, 0, 0, 0) -- Soldan başlat
+                    tabData.Page.Visible = true
+                    TweenService:Create(tabData.Page, TweenInfo.new(0.35, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {Position = UDim2.new(0, 0, 0, 0)}):Play()
+                end
                 tabData.Button.BackgroundColor3 = Color3.fromRGB(138, 43, 226)
                 tabData.Button.TextColor3 = Color3.fromRGB(255, 255, 255)
             else
@@ -379,6 +432,11 @@ local function CreateTab(name, isDefault, useGrid)
             end
         end
     end)
+
+    if isDefault then
+        TabBtn.BackgroundColor3 = Color3.fromRGB(138, 43, 226)
+        TabBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    end
 
     if isDefault then
         TabBtn.BackgroundColor3 = Color3.fromRGB(138, 43, 226)
@@ -569,8 +627,10 @@ local function CreateCategoryCard(parentTab, titleText)
     Instance.new("UICorner", CardFrame).CornerRadius = UDim.new(0, 8)
 
     local Stroke = Instance.new("UIStroke")
-    Stroke.Color = Color3.fromRGB(40, 40, 45)
-    Stroke.Parent = CardFrame
+Stroke.Color = Color3.fromRGB(255, 255, 255)
+Stroke.Transparency = 0.8
+Stroke.Thickness = 1
+Stroke.Parent = CardFrame
 
     local TitleLbl = Instance.new("TextLabel")
     TitleLbl.Size = UDim2.new(1, -20, 0, 30)
@@ -618,9 +678,10 @@ local function CreateQuickWidget(name, toggleCallback)
     Instance.new("UICorner", Widget).CornerRadius = UDim.new(0, 8)
     
     local UIStroke = Instance.new("UIStroke")
-    UIStroke.Color = Color3.fromRGB(138, 43, 226)
-    UIStroke.Thickness = 1.5
-    UIStroke.Parent = Widget
+UIStroke.Color = Color3.fromRGB(255, 255, 255)
+UIStroke.Transparency = 0.8
+UIStroke.Thickness = 1
+UIStroke.Parent = Widget
 
     local Btn = Instance.new("TextButton")
     Btn.Size = UDim2.new(1, 0, 1, 0)
@@ -923,9 +984,89 @@ end)
 local HareketCard = CreateCategoryCard(PlayerTab, "Hareket")
 local UtilityCard = CreateCategoryCard(PlayerTab, "Özel Güçler")
 
-CreateToggle(HareketCard, "Hızlı Yürüme", "Yürüme hızını 50 yapar.", 0, function(state)
-    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
-        LocalPlayer.Character.Humanoid.WalkSpeed = state and 50 or 16
+local WalkSpeedGUI
+local CurrentSpeed = 50
+
+CreateToggle(HareketCard, "Hızlı Yürüme", "Yürüme hızını ayarlar ve yanda menü açar.", function(state)
+    local char = LocalPlayer.Character
+    if not char or not char:FindFirstChild("Humanoid") then return end
+    
+    if state then
+        char.Humanoid.WalkSpeed = CurrentSpeed
+        
+        if not CoreGui:FindFirstChild("SpeedSettingsMenu") then
+            WalkSpeedGUI = Instance.new("ScreenGui")
+            WalkSpeedGUI.Name = "SpeedSettingsMenu"
+            pcall(function() WalkSpeedGUI.Parent = CoreGui end)
+            if not WalkSpeedGUI.Parent then WalkSpeedGUI.Parent = LocalPlayer:WaitForChild("PlayerGui") end
+
+            local MenuFrame = Instance.new("Frame")
+            MenuFrame.Size = UDim2.new(0, 150, 0, 100)
+            MenuFrame.Position = UDim2.new(1, -170, 0.5, 75) -- Fly menüsünün altına hizalı
+            MenuFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 23)
+            Instance.new("UICorner", MenuFrame).CornerRadius = UDim.new(0, 10)
+            
+            local Stroke = Instance.new("UIStroke")
+            Stroke.Color = Color3.fromRGB(255, 255, 255)
+            Stroke.Transparency = 0.7
+            Stroke.Thickness = 1
+            Stroke.Parent = MenuFrame
+            MenuFrame.Parent = WalkSpeedGUI
+
+            local Title = Instance.new("TextLabel")
+            Title.Size = UDim2.new(1, 0, 0, 30)
+            Title.BackgroundTransparency = 1
+            Title.Text = "HIZ AYARLARI"
+            Title.Font = Enum.Font.GothamBlack
+            Title.TextColor3 = Color3.fromRGB(138, 43, 226)
+            Title.Parent = MenuFrame
+
+            local SpeedLabel = Instance.new("TextLabel")
+            SpeedLabel.Size = UDim2.new(1, 0, 0, 30)
+            SpeedLabel.Position = UDim2.new(0, 0, 0, 35)
+            SpeedLabel.BackgroundTransparency = 1
+            SpeedLabel.Text = "Hız: " .. CurrentSpeed
+            SpeedLabel.Font = Enum.Font.GothamBold
+            SpeedLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+            SpeedLabel.Parent = MenuFrame
+
+            local BtnMinus = Instance.new("TextButton")
+            BtnMinus.Size = UDim2.new(0, 40, 0, 30)
+            BtnMinus.Position = UDim2.new(0, 10, 0, 35)
+            BtnMinus.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
+            BtnMinus.Text = "-"
+            BtnMinus.TextColor3 = Color3.fromRGB(255, 100, 100)
+            Instance.new("UICorner", BtnMinus).CornerRadius = UDim.new(0, 6)
+            BtnMinus.Parent = MenuFrame
+
+            local BtnPlus = Instance.new("TextButton")
+            BtnPlus.Size = UDim2.new(0, 40, 0, 30)
+            BtnPlus.Position = UDim2.new(1, -50, 0, 35)
+            BtnPlus.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
+            BtnPlus.Text = "+"
+            BtnPlus.TextColor3 = Color3.fromRGB(100, 255, 100)
+            Instance.new("UICorner", BtnPlus).CornerRadius = UDim.new(0, 6)
+            BtnPlus.Parent = MenuFrame
+
+            BtnPlus.MouseButton1Down:Connect(function() 
+                CurrentSpeed = CurrentSpeed + 5
+                SpeedLabel.Text = "Hız: " .. CurrentSpeed
+                if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+                    LocalPlayer.Character.Humanoid.WalkSpeed = CurrentSpeed
+                end
+            end)
+            
+            BtnMinus.MouseButton1Down:Connect(function() 
+                CurrentSpeed = math.max(16, CurrentSpeed - 5)
+                SpeedLabel.Text = "Hız: " .. CurrentSpeed
+                if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+                    LocalPlayer.Character.Humanoid.WalkSpeed = CurrentSpeed
+                end
+            end)
+        end
+    else
+        char.Humanoid.WalkSpeed = 16
+        if WalkSpeedGUI then WalkSpeedGUI:Destroy() end
     end
 end)
 
@@ -1169,7 +1310,7 @@ CreateToggle(UtilityCard, "Hayalet Görünmezlik", "Gerçek bedeni gizler, harit
 
             -- 2. Gerçek bedeni uzaya (50.000 metre yukarı) fırlat ve dondur (Kimse bulamaz)
             local realHrp = realChar:FindFirstChild("HumanoidRootPart")
-            realHrp.CFrame = CFrame.new(0, 50000, 0)
+            realHrp.CFrame = realHrp.CFrame + Vector3.new(0, 1000, 0) -- Olduğu konumun 1000 birim üstüne fırlar
             realHrp.Anchored = true
 
             -- 3. Kamera ve yürüyüş kontrolünü Hayalete (Kopya bedene) ver
@@ -1268,31 +1409,50 @@ end)
 -- 5. INTRO GEÇİŞİ (GARANTİLİ THREAD)
 -- ==========================================
 local IntroFrame = Instance.new("Frame")
-IntroFrame.Size = UDim2.new(1, 0, 1, 0)
-IntroFrame.BackgroundColor3 = Color3.fromRGB(15, 10, 20)
+IntroFrame.Size = UDim2.new(2, 0, 2, 0) -- Tüm mobil/PC ekranlarını kesin kaplar
+IntroFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+IntroFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
+IntroFrame.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+IntroFrame.BackgroundTransparency = 0.3 -- Şeffaf
 IntroFrame.ZIndex = 200
 IntroFrame.Parent = ScreenGui
 
+-- Arka Plan Wave Gradient (Koyu Mordan Siyaha)
 local IntroGradient = Instance.new("UIGradient")
 IntroGradient.Color = ColorSequence.new{
-    ColorSequenceKeypoint.new(0, Color3.fromRGB(48, 0, 74)),
-    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(15, 15, 15)),
-    ColorSequenceKeypoint.new(1, Color3.fromRGB(48, 0, 74))
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(15, 5, 20)),
+    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(0, 0, 0)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(15, 5, 20))
 }
 IntroGradient.Rotation = 45
 IntroGradient.Parent = IntroFrame
 
 local IntroText = Instance.new("TextLabel")
-IntroText.Size = UDim2.new(0.8, 0, 0.4, 0)
-IntroText.Position = UDim2.new(0.1, 0, 0.3, 0)
+IntroText.Size = UDim2.new(0, 400, 0, 100)
+IntroText.AnchorPoint = Vector2.new(0.5, 0.5)
+IntroText.Position = UDim2.new(0.5, 0, 0.5, 0)
 IntroText.BackgroundTransparency = 1
-IntroText.Text = "DarkerSH Premium Hub"
+IntroText.Text = "DarkerSH Reborn"
 IntroText.Font = Enum.Font.GothamBlack
 IntroText.TextScaled = true
 IntroText.TextColor3 = Color3.fromRGB(255, 255, 255)
 IntroText.ZIndex = 201
 IntroText.Parent = IntroFrame
 
+-- Yazı Wave Gradient (Koyu Mordan Açık Mora)
+local TextGradient = Instance.new("UIGradient")
+TextGradient.Color = ColorSequence.new{
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(70, 0, 130)),
+    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(160, 32, 240)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(70, 0, 130))
+}
+TextGradient.Rotation = 0
+TextGradient.Parent = IntroText
+
+-- Wave Animasyonları Döngüsü
+local waveTweenInfo = TweenInfo.new(2.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true)
+TweenService:Create(IntroGradient, waveTweenInfo, {Offset = Vector2.new(1, 0)}):Play()
+TweenService:Create(TextGradient, waveTweenInfo, {Offset = Vector2.new(1, 0)}):Play()
 TweenService:Create(IntroGradient, waveTweenInfo, {Offset = Vector2.new(1, 0)}):Play()
 
 task.spawn(function()
