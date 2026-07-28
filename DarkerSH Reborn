@@ -176,6 +176,12 @@ MainGradient.Color = ColorSequence.new{
     ColorSequenceKeypoint.new(0, Color3.fromRGB(15, 10, 20)),
     ColorSequenceKeypoint.new(0.5, Color3.fromRGB(17, 17, 19)),
     ColorSequenceKeypoint.new(1, Color3.fromRGB(25, 10, 35))
+-- Ana Menü Parlak Beyaz Dış Çizgi
+local MainStroke = Instance.new("UIStroke")
+MainStroke.Color = Color3.fromRGB(255, 255, 255)
+MainStroke.Transparency = 0.5
+MainStroke.Thickness = 1.5
+MainStroke.Parent = MainFrame
 }
 MainGradient.Rotation = 45
 MainGradient.Parent = MainFrame
@@ -547,51 +553,78 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- Key Entry Sistemi
-local KeyFrame = Instance.new("Frame")
-KeyFrame.Size = UDim2.new(1, -40, 0, 120)
-KeyFrame.Position = UDim2.new(0, 20, 1, -140)
-KeyFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
-KeyFrame.ZIndex = 3
-Instance.new("UICorner", KeyFrame).CornerRadius = UDim.new(0, 10)
-KeyFrame.Parent = HomeTab
-Instance.new("UIStroke", KeyFrame).Color = Color3.fromRGB(50, 50, 60)
+-- ==========================================
+-- YAN ÇEKMECE (KEY DRAWER) SİSTEMİ
+-- ==========================================
+local KeyDrawer = Instance.new("Frame")
+KeyDrawer.Size = UDim2.new(0, 250, 0, 150)
+KeyDrawer.Position = UDim2.new(1, -10, 0.5, -75) -- MainFrame'in arkasında gizli
+KeyDrawer.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+KeyDrawer.ZIndex = 0 -- MainFrame'in arkasında kalması için
+KeyDrawer.Parent = MainFrame
+Instance.new("UICorner", KeyDrawer).CornerRadius = UDim.new(0, 10)
+
+local DrawerStroke = Instance.new("UIStroke")
+DrawerStroke.Color = Color3.fromRGB(138, 43, 226)
+DrawerStroke.Thickness = 1.5
+DrawerStroke.Parent = KeyDrawer
+
+-- Çekmeceyi Açıp Kapatacak Yan Buton
+local DrawerToggle = Instance.new("TextButton")
+DrawerToggle.Size = UDim2.new(0, 40, 0, 40)
+DrawerToggle.Position = UDim2.new(1, 5, 0.5, -20)
+DrawerToggle.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+DrawerToggle.Text = "🔑"
+DrawerToggle.TextSize = 18
+DrawerToggle.ZIndex = 5
+DrawerToggle.Parent = MainFrame
+Instance.new("UICorner", DrawerToggle).CornerRadius = UDim.new(1, 0)
+Instance.new("UIStroke", DrawerToggle).Color = Color3.fromRGB(255, 255, 255)
+
+local drawerOpen = false
+DrawerToggle.MouseButton1Click:Connect(function()
+    drawerOpen = not drawerOpen
+    if drawerOpen then
+        TweenService:Create(KeyDrawer, TweenInfo.new(0.4, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {Position = UDim2.new(1, 20, 0.5, -75)}):Play()
+        DrawerToggle.BackgroundColor3 = Color3.fromRGB(138, 43, 226)
+    else
+        TweenService:Create(KeyDrawer, TweenInfo.new(0.4, Enum.EasingStyle.Quart, Enum.EasingDirection.In), {Position = UDim2.new(1, -10, 0.5, -75)}):Play()
+        DrawerToggle.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+    end
+end)
 
 local KeyTitle = Instance.new("TextLabel")
 KeyTitle.Size = UDim2.new(1, 0, 0, 30)
 KeyTitle.Position = UDim2.new(0, 0, 0, 10)
 KeyTitle.BackgroundTransparency = 1
-KeyTitle.Text = "ERİŞİM ANAHTARI GİRİN (KEY)"
+KeyTitle.Text = "ERİŞİM ANAHTARI (KEY)"
 KeyTitle.Font = Enum.Font.GothamBold
 KeyTitle.TextColor3 = Color3.fromRGB(200, 200, 200)
 KeyTitle.TextSize = 12
-KeyTitle.ZIndex = 4
-KeyTitle.Parent = KeyFrame
+KeyTitle.Parent = KeyDrawer
 
 local KeyInput = Instance.new("TextBox")
-KeyInput.Size = UDim2.new(0.6, 0, 0, 40)
-KeyInput.Position = UDim2.new(0.05, 0, 0, 50)
+KeyInput.Size = UDim2.new(0.9, 0, 0, 35)
+KeyInput.Position = UDim2.new(0.05, 0, 0, 45)
 KeyInput.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
-KeyInput.PlaceholderText = "Anahtarınızı buraya yapıştırın..."
+KeyInput.PlaceholderText = "Anahtarı yapıştır..."
 KeyInput.Text = ""
 KeyInput.Font = Enum.Font.Gotham
 KeyInput.TextColor3 = Color3.fromRGB(255, 255, 255)
-KeyInput.TextSize = 14
-KeyInput.ZIndex = 4
+KeyInput.TextSize = 12
 Instance.new("UICorner", KeyInput).CornerRadius = UDim.new(0, 6)
-KeyInput.Parent = KeyFrame
+KeyInput.Parent = KeyDrawer
 
 local VerifyBtn = Instance.new("TextButton")
-VerifyBtn.Size = UDim2.new(0.25, 0, 0, 40)
-VerifyBtn.Position = UDim2.new(0.7, 0, 0, 50)
+VerifyBtn.Size = UDim2.new(0.9, 0, 0, 35)
+VerifyBtn.Position = UDim2.new(0.05, 0, 0, 95)
 VerifyBtn.BackgroundColor3 = Color3.fromRGB(138, 43, 226)
 VerifyBtn.Text = "DOĞRULA"
 VerifyBtn.Font = Enum.Font.GothamBold
 VerifyBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 VerifyBtn.TextSize = 14
-VerifyBtn.ZIndex = 4
 Instance.new("UICorner", VerifyBtn).CornerRadius = UDim.new(0, 6)
-VerifyBtn.Parent = KeyFrame
+VerifyBtn.Parent = KeyDrawer
 
 VerifyBtn.MouseButton1Click:Connect(function()
     local k = KeyInput.Text
@@ -985,30 +1018,60 @@ end)
 -- === SAVAŞ (COMBAT) SEKMESİ ===
 local CombatCard = CreateCategoryCard(CombatTab, "Saldırı ve Savunma")
 
-CreateToggle(CombatCard, "Otomatik Katlet", "Katilken herkesi otomatik öldürür.", 2, function(state)
+local savedPositions = {}
+
+CreateToggle(CombatCard, "Otomatik Katlet", "Herkesi önüne çeker ve katleder.", 2, function(state)
     Toggles.AutoKill = state
-    while Toggles.AutoKill and task.wait(0.3) do
-        pcall(function()
-            local char = LocalPlayer.Character
-            local knife = LocalPlayer.Backpack:FindFirstChild("Knife") or (char and char:FindFirstChild("Knife"))
-            if knife and char and char:FindFirstChild("HumanoidRootPart") then
-                if knife.Parent ~= char then knife.Parent = char end
-                for _, plr in pairs(Players:GetPlayers()) do
-                    if plr ~= LocalPlayer and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
-                        local hum = plr.Character:FindFirstChild("Humanoid")
-                        if hum and hum.Health > 0 then
-                            char.HumanoidRootPart.CFrame = plr.Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, 2)
-                            knife:Activate()
-                            task.wait(0.1)
+    if state then
+        -- 1. Açıldığında herkesin orijinal konumunu kaydet
+        savedPositions = {}
+        for _, plr in pairs(Players:GetPlayers()) do
+            if plr ~= LocalPlayer and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+                savedPositions[plr] = plr.Character.HumanoidRootPart.CFrame
+            end
+        end
+        Notify("Herkes önüne getiriliyor...")
+        
+        -- 2. Herkesi önüne kitle ve bıçakla
+        task.spawn(function()
+            while Toggles.AutoKill do
+                local char = LocalPlayer.Character
+                local knife = LocalPlayer.Backpack:FindFirstChild("Knife") or (char and char:FindFirstChild("Knife"))
+                
+                if char and char:FindFirstChild("HumanoidRootPart") then
+                    local myHrp = char.HumanoidRootPart
+                    if knife then
+                        if knife.Parent ~= char then knife.Parent = char end
+                        knife:Activate()
+                    end
+                    
+                    for _, plr in pairs(Players:GetPlayers()) do
+                        if plr ~= LocalPlayer and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+                            local targetHrp = plr.Character.HumanoidRootPart
+                            local hum = plr.Character:FindFirstChild("Humanoid")
+                            -- Sadece yaşayanları önüne çek (iç içe)
+                            if hum and hum.Health > 0 then
+                                targetHrp.CFrame = myHrp.CFrame * CFrame.new(0, 0, -3)
+                            end
                         end
                     end
                 end
+                task.wait(0.05)
             end
         end)
+    else
+        -- 3. Kapatıldığında herkesi sunucudaki eski konumuna geri fırlat
+        for plr, oldCFrame in pairs(savedPositions) do
+            if plr and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+                plr.Character.HumanoidRootPart.CFrame = oldCFrame
+            end
+        end
+        savedPositions = {}
+        Notify("Katliam durduruldu, oyuncular geri bırakıldı.")
     end
 end)
 
-CreateToggle(CombatCard, "Katili Vur", "Hedef almadan, gizlice katili vurur (Silent Aim).", 2, function(state)
+CreateToggle(CombatCard, "Katili Vur", "Eline silahı alır ve fiziksel olarak katile ateş eder.", 2, function(state)
     Toggles.ShootMurderer = state
     while Toggles.ShootMurderer and task.wait(0.2) do
         pcall(function()
@@ -1025,24 +1088,26 @@ CreateToggle(CombatCard, "Katili Vur", "Hedef almadan, gizlice katili vurur (Sil
                 end
                 
                 if murderer and murderer.Character and murderer.Character:FindFirstChild("HumanoidRootPart") then
+                    -- Silahı ele al
                     if gun.Parent ~= char then gun.Parent = char end
                     
                     local hrp = char.HumanoidRootPart
-                    local oldCFrame = hrp.CFrame
-                    local oldCam = Workspace.CurrentCamera.CFrame
+                    local targetPos = murderer.Character.HumanoidRootPart.Position
                     
-                    -- 1 milisaniyeliğine katilin arkasına geç ve ateşle (Kamera hissettirmez)
-                    hrp.CFrame = murderer.Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, 3)
-                    Workspace.CurrentCamera.CFrame = CFrame.lookAt(Workspace.CurrentCamera.CFrame.Position, murderer.Character.HumanoidRootPart.Position)
+                    -- Karakteri ve kamerayı tam olarak katile döndür
+                    Workspace.CurrentCamera.CFrame = CFrame.lookAt(Workspace.CurrentCamera.CFrame.Position, targetPos)
+                    hrp.CFrame = CFrame.lookAt(hrp.Position, Vector3.new(targetPos.X, hrp.Position.Y, targetPos.Z))
                     
+                    task.wait(0.1)
+                    
+                    -- MM2 için garanti ateşleme kombinasyonu (Hem Activate hem de fiziksel Mouse tıklaması simülasyonu)
                     gun:Activate()
-                    RunService.RenderStepped:Wait() -- Sadece 1 frame bekle (Atışın kaydedilmesi için)
+                    VirtualUser:Button1Down(Vector2.new(0,0), Workspace.CurrentCamera.CFrame)
+                    task.wait(0.05)
+                    VirtualUser:Button1Up(Vector2.new(0,0), Workspace.CurrentCamera.CFrame)
                     
-                    hrp.CFrame = oldCFrame
-                    Workspace.CurrentCamera.CFrame = oldCam
-                    
-                    Toggles.ShootMurderer = false -- Vurduktan sonra kendini kapatsın
-                    Notify("Katil vuruldu!")
+                    Toggles.ShootMurderer = false -- Sıktıktan sonra kendini kapatsın
+                    Notify("Katilin üstüne tıklandı ve ateş edildi!")
                 end
             end
         end)
