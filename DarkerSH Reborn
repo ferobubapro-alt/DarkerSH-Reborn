@@ -418,7 +418,7 @@ local function CreateToggle(parentTab, name, description, callback)
     end)
 end
 -- ==========================================
--- YENİ NESİL KART / GRID OLUŞTURUCU FONKSİYONLAR (TIKLAMA DÜZELTİLDİ)
+-- YENİ NESİL KART / GRID OLUŞTURUCU FONKSİYONLAR (KESİN TIKLAMA ÇÖZÜMÜ)
 -- ==========================================
 
 local function CreateSection(parentTab, titleText)
@@ -441,7 +441,7 @@ local function CreateSection(parentTab, titleText)
     Title.Parent = SectionTitleFrame
 
     local GridContainer = Instance.new("Frame")
-    GridContainer.Size = UDim2.new(1, -10, 0, 0)
+    GridContainer.Size = UDim2.new(1, -10, 0, 130) -- Boyut "0" olmasın diye varsayılan değer eklendi
     GridContainer.BackgroundTransparency = 1
     GridContainer.ZIndex = 3
     GridContainer.Parent = parentTab
@@ -452,16 +452,14 @@ local function CreateSection(parentTab, titleText)
     GridLayout.SortOrder = Enum.SortOrder.LayoutOrder
     GridLayout.Parent = GridContainer
 
-    -- Tıklama sorununu çözen boyutlandırma onarımı:
-    task.delay(0.1, function()
-        pcall(function()
+    -- Kutu eklendikçe çerçevenin yüksekliğini garantiye alan sistem:
+    local function UpdateSize()
+        task.delay(0.05, function()
             GridContainer.Size = UDim2.new(1, -10, 0, GridLayout.AbsoluteContentSize.Y)
         end)
-    end)
-    
-    GridLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-        GridContainer.Size = UDim2.new(1, -10, 0, GridLayout.AbsoluteContentSize.Y)
-    end)
+    end
+    GridLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(UpdateSize)
+    GridContainer.ChildAdded:Connect(UpdateSize)
 
     return GridContainer 
 end
@@ -476,6 +474,14 @@ local function CreateToggle(parentContainer, name, description, callback)
     local Stroke = Instance.new("UIStroke")
     Stroke.Color = Color3.fromRGB(40, 40, 45)
     Stroke.Parent = CardFrame
+
+    -- !! ÖNEMLİ DÜZELTME: KARTIN TAMAMINI KAPLAYAN GÖRÜNMEZ TIKLAMA ALANI !!
+    local ClickArea = Instance.new("TextButton")
+    ClickArea.Size = UDim2.new(1, 0, 1, 0)
+    ClickArea.BackgroundTransparency = 1
+    ClickArea.Text = ""
+    ClickArea.ZIndex = 10 -- En üst katmanda, diğer yazıların altında ezilmez
+    ClickArea.Parent = CardFrame
 
     local TitleLbl = Instance.new("TextLabel")
     TitleLbl.Size = UDim2.new(1, -20, 0, 20)
@@ -511,14 +517,15 @@ local function CreateToggle(parentContainer, name, description, callback)
     ToggleBtn.Font = Enum.Font.GothamBold
     ToggleBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
     ToggleBtn.TextSize = 11
-    ToggleBtn.AutoButtonColor = true
-    ToggleBtn.Active = true
-    ToggleBtn.ZIndex = 5 -- Butonu en üst katmana taşıdık (Tıklanmayı bu düzeltiyor)
+    ToggleBtn.Active = false -- Sadece görsel olarak duracak
+    ToggleBtn.ZIndex = 4
     Instance.new("UICorner", ToggleBtn).CornerRadius = UDim.new(0, 6)
     ToggleBtn.Parent = CardFrame
 
     local toggled = false
-    ToggleBtn.MouseButton1Click:Connect(function()
+    
+    -- Tıklamayı direkt butondan değil, "kartın tümünden" ve MouseButton1Down ile alıyoruz!
+    ClickArea.MouseButton1Down:Connect(function()
         toggled = not toggled
         local stateText = toggled and "AÇIK" or "KAPALI"
         
