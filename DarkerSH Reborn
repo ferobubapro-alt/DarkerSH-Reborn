@@ -176,15 +176,16 @@ MainGradient.Color = ColorSequence.new{
     ColorSequenceKeypoint.new(0, Color3.fromRGB(15, 10, 20)),
     ColorSequenceKeypoint.new(0.5, Color3.fromRGB(17, 17, 19)),
     ColorSequenceKeypoint.new(1, Color3.fromRGB(25, 10, 35))
--- Ana Menü Parlak Beyaz Dış Çizgi
+}
+MainGradient.Rotation = 45
+MainGradient.Parent = MainFrame
+
+-- Ana Menü Parlak Beyaz Dış Çizgi (Tablonun DIŞINA alındı)
 local MainStroke = Instance.new("UIStroke")
 MainStroke.Color = Color3.fromRGB(255, 255, 255)
 MainStroke.Transparency = 0.5
 MainStroke.Thickness = 1.5
 MainStroke.Parent = MainFrame
-}
-MainGradient.Rotation = 45
-MainGradient.Parent = MainFrame
 
 -- Arka Plan Dalga (Wave) Animasyonu
 local waveTweenInfo = TweenInfo.new(4, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true)
@@ -461,7 +462,7 @@ local FarmTab = CreateTab("Farm", false, true)
 local PlayerTab = CreateTab("Oyuncu", false, true)
 local CombatTab = CreateTab("Savaş", false, true)
 local VisualTab = CreateTab("Görsel", false, true)
-
+local SettingsTab = CreateTab("Ayarlar", false, true) -- BURASI EKLENDİ
 -- ==========================================
 -- ANA MENÜ (HOME) TASARIMI VE KEY SİSTEMİ
 -- ==========================================
