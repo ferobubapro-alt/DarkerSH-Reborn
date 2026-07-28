@@ -161,7 +161,7 @@ TweenService:Create(TextGradient, waveTweenInfo, {Offset = Vector2.new(1, 0)}):P
 -- ==========================================
 local MainFrame = Instance.new("Frame")
 MainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
-MainFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
+MainFrame.Position = UDim2.new(0.5, 0, 0.5, 45) -- Y eksenine +45 eklendi, arayüz aşağı çekildi
 MainFrame.Size = UDim2.new(0, 620, 0, 520)
 MainFrame.BackgroundColor3 = Color3.fromRGB(17, 17, 19)
 MainFrame.Visible = false
@@ -651,9 +651,12 @@ CreateToggle(HareketGrid, "Uçma (Fly)", "Joystick/WASD ve kamera yönüne duyar
     local hrp = char.HumanoidRootPart
     local hum = char.Humanoid
 
-    -- Uçmayı durdurma ve her şeyi temizleme fonksiyonu (Hem menüden hem toggle'dan kapatmak için)
+    -- Uçmayı durdurma ve her şeyi temizleme fonksiyonu 
     local function StopFly()
         flying = false
+        hum.PlatformStand = false -- TİTREME DÜZELTMESİ: Yürüme fiziğini geri aç
+        hum.AutoRotate = true
+        
         if FlyConnection then FlyConnection:Disconnect() FlyConnection = nil end
         if hrp:FindFirstChild("FlyBV") then hrp.FlyBV:Destroy() end
         if hrp:FindFirstChild("FlyBG") then hrp.FlyBG:Destroy() end
@@ -665,20 +668,22 @@ CreateToggle(HareketGrid, "Uçma (Fly)", "Joystick/WASD ve kamera yönüne duyar
     end
 
     if flying then
+        hum.PlatformStand = true -- TİTREME DÜZELTMESİ: Yürüme fiziğini kapat
+        hum.AutoRotate = false
+
         -- 1. Animasyonları Yükle (PlayerAnimator üzerinden)
         local animator = hum:FindFirstChildOfClass("Animator")
         if animator then
             local idleAnim = Instance.new("Animation")
             idleAnim.AnimationId = "rbxassetid://123349905320515"
             IdleAnimTrack = animator:LoadAnimation(idleAnim)
-            IdleAnimTrack.Priority = Enum.AnimationPriority.Action -- Kendi animasyonumuzu baskın yapıyoruz
+            IdleAnimTrack.Priority = Enum.AnimationPriority.Action 
 
             local moveAnim = Instance.new("Animation")
             moveAnim.AnimationId = "rbxassetid://115250948577308"
             MoveAnimTrack = animator:LoadAnimation(moveAnim)
             MoveAnimTrack.Priority = Enum.AnimationPriority.Action
 
-            -- Başlangıçta Idle (Hareketsiz) animasyonunu oynat
             IdleAnimTrack:Play()
         end
 
@@ -696,7 +701,7 @@ CreateToggle(HareketGrid, "Uçma (Fly)", "Joystick/WASD ve kamera yönüne duyar
         bg.CFrame = hrp.CFrame
         bg.Parent = hrp
 
-        -- 3. Fly Ayar Menüsünü Ekrana Ekle (Sağ Taraf)
+        -- 3. Fly Ayar Menüsünü Ekrana Ekle
         if not CoreGui:FindFirstChild("FlySettingsMenu") then
             FlyGUI = Instance.new("ScreenGui")
             FlyGUI.Name = "FlySettingsMenu"
@@ -706,7 +711,7 @@ CreateToggle(HareketGrid, "Uçma (Fly)", "Joystick/WASD ve kamera yönüne duyar
 
             local MenuFrame = Instance.new("Frame")
             MenuFrame.Size = UDim2.new(0, 150, 0, 130)
-            MenuFrame.Position = UDim2.new(1, -170, 0.5, -65) -- Ekranın sağ ortası
+            MenuFrame.Position = UDim2.new(1, -170, 0.5, -65) 
             MenuFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 23)
             MenuFrame.ZIndex = 100
             Instance.new("UICorner", MenuFrame).CornerRadius = UDim.new(0, 10)
@@ -738,7 +743,6 @@ CreateToggle(HareketGrid, "Uçma (Fly)", "Joystick/WASD ve kamera yönüne duyar
             SpeedLabel.ZIndex = 101
             SpeedLabel.Parent = MenuFrame
 
-            -- Hız Azalt Butonu (-)
             local BtnMinus = Instance.new("TextButton")
             BtnMinus.Size = UDim2.new(0, 40, 0, 30)
             BtnMinus.Position = UDim2.new(0, 10, 0, 35)
@@ -751,7 +755,6 @@ CreateToggle(HareketGrid, "Uçma (Fly)", "Joystick/WASD ve kamera yönüne duyar
             Instance.new("UICorner", BtnMinus).CornerRadius = UDim.new(0, 6)
             BtnMinus.Parent = MenuFrame
 
-            -- Hız Artır Butonu (+)
             local BtnPlus = Instance.new("TextButton")
             BtnPlus.Size = UDim2.new(0, 40, 0, 30)
             BtnPlus.Position = UDim2.new(1, -50, 0, 35)
@@ -764,7 +767,6 @@ CreateToggle(HareketGrid, "Uçma (Fly)", "Joystick/WASD ve kamera yönüne duyar
             Instance.new("UICorner", BtnPlus).CornerRadius = UDim.new(0, 6)
             BtnPlus.Parent = MenuFrame
 
-            -- Fly Kapat Butonu
             local BtnClose = Instance.new("TextButton")
             BtnClose.Size = UDim2.new(1, -20, 0, 35)
             BtnClose.Position = UDim2.new(0, 10, 0, 80)
@@ -777,7 +779,6 @@ CreateToggle(HareketGrid, "Uçma (Fly)", "Joystick/WASD ve kamera yönüne duyar
             Instance.new("UICorner", BtnClose).CornerRadius = UDim.new(0, 6)
             BtnClose.Parent = MenuFrame
 
-            -- Buton İşlevleri
             BtnPlus.MouseButton1Down:Connect(function()
                 FlySpeed = FlySpeed + 10
                 SpeedLabel.Text = "Hız: " .. FlySpeed
@@ -790,18 +791,17 @@ CreateToggle(HareketGrid, "Uçma (Fly)", "Joystick/WASD ve kamera yönüne duyar
             
             BtnClose.MouseButton1Down:Connect(function()
                 StopFly()
-                Notify("Fly kapatıldı. (Menüdeki kartı eşitlemek için tekrar tıklayabilirsin.)")
+                Notify("Fly kapatıldı.")
             end)
         end
 
-        -- 4. Klasik Fly Döngüsü (Kamera Yönü + Joystick/Klavye + Animasyon Kontrolü)
+        -- 4. Klasik Fly Döngüsü
         FlyConnection = RunService.RenderStepped:Connect(function()
             if char and char:FindFirstChild("Humanoid") and hrp:FindFirstChild("FlyBV") then
                 local cam = Workspace.CurrentCamera
                 local moveDir = char.Humanoid.MoveDirection
 
                 if moveDir.Magnitude > 0 then
-                    -- Hareket Halindeyiz
                     local flatLook = Vector3.new(cam.CFrame.LookVector.X, 0, cam.CFrame.LookVector.Z).Unit
                     local flatRight = Vector3.new(cam.CFrame.RightVector.X, 0, cam.CFrame.RightVector.Z).Unit
 
@@ -811,14 +811,11 @@ CreateToggle(HareketGrid, "Uçma (Fly)", "Joystick/WASD ve kamera yönüne duyar
                     local moveVector = (cam.CFrame.LookVector * forwardInput) + (cam.CFrame.RightVector * rightInput)
                     hrp.FlyBV.Velocity = moveVector * FlySpeed
                     
-                    -- Animasyon Geçişi: Idle Kapat, Move Aç
                     if IdleAnimTrack and IdleAnimTrack.IsPlaying then IdleAnimTrack:Stop() end
                     if MoveAnimTrack and not MoveAnimTrack.IsPlaying then MoveAnimTrack:Play() end
                 else
-                    -- Hareketsiz Bekliyoruz
                     hrp.FlyBV.Velocity = Vector3.new(0, 0, 0)
                     
-                    -- Animasyon Geçişi: Move Kapat, Idle Aç
                     if MoveAnimTrack and MoveAnimTrack.IsPlaying then MoveAnimTrack:Stop() end
                     if IdleAnimTrack and not IdleAnimTrack.IsPlaying then IdleAnimTrack:Play() end
                 end
@@ -827,7 +824,6 @@ CreateToggle(HareketGrid, "Uçma (Fly)", "Joystick/WASD ve kamera yönüne duyar
             end
         end)
     else
-        -- Özellik Kapatıldığında her şeyi temizle
         StopFly()
     end
 end)
